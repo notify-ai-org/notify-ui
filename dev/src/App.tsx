@@ -2,16 +2,16 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 /* ── Lazy-load every portal App ── */
-const HomeApp       = lazy(() => import('../../home/src/App'));
-const SDKGuideApp   = lazy(() => import('../../sdk-guide/src/App'));
-const LoginApp      = lazy(() => import('../../login/src/App'));
-const EventsApp     = lazy(() => import('../../events/src/App'));
-const TemplatesApp  = lazy(() => import('../../templates/src/App'));
-const MemoryApp     = lazy(() => import('../../memory/src/App'));
-const DomainApp     = lazy(() => import('../../domain/src/App'));
-const VocabApp      = lazy(() => import('../../vocab-rules/src/App'));
-const SettingsApp   = lazy(() => import('../../settings/src/App'));
-const DLQApp        = lazy(() => import('../../dead-letters/src/App'));
+const HomeApp = lazy(() => import('../../home/src/App'));
+const SDKGuideApp = lazy(() => import('../../sdk-guide/src/App'));
+const LoginApp = lazy(() => import('../../login/src/App'));
+//const EventsApp     = lazy(() => import('../../events/src/App'));
+const TemplatesApp = lazy(() => import('../../templates/src/App'));
+const MemoryApp = lazy(() => import('../../memory/src/App'));
+const DomainApp = lazy(() => import('../../domain/src/App'));
+const VocabApp = lazy(() => import('../../vocab-rules/src/App'));
+const SettingsApp = lazy(() => import('../../settings/src/App'));
+const DLQApp = lazy(() => import('../../dead-letters/src/App'));
 
 /* ── Portal registry ── */
 interface PortalDef {
@@ -26,7 +26,7 @@ const GROUPS: { label: string; portals: PortalDef[] }[] = [
   {
     label: 'Public',
     portals: [
-      { key: 'home',      label: 'Home',      emoji: '⚡', basePath: '/portals/home',      accent: '#eab308' },
+      { key: 'home', label: 'Home', emoji: '⚡', basePath: '/portals/home', accent: '#eab308' },
       { key: 'sdk-guide', label: 'SDK Guide', emoji: '📖', basePath: '/portals/sdk-guide', accent: '#eab308' },
     ],
   },
@@ -39,12 +39,12 @@ const GROUPS: { label: string; portals: PortalDef[] }[] = [
   {
     label: 'Admin',
     portals: [
-      { key: 'events',       label: 'Events',       emoji: '📡', basePath: '/portals/events',       accent: '#6366f1' },
-      { key: 'templates',    label: 'Templates',    emoji: '📄', basePath: '/portals/templates',    accent: '#06b6d4' },
-      { key: 'memory',       label: 'Memory',       emoji: '🧠', basePath: '/portals/memory',       accent: '#a855f7' },
-      { key: 'domain',       label: 'Domain',       emoji: '🌐', basePath: '/portals/domain',       accent: '#f97316' },
-      { key: 'vocab-rules',  label: 'Vocab Rules',  emoji: '📚', basePath: '/portals/vocab-rules',  accent: '#3b82f6' },
-      { key: 'settings',     label: 'Settings',     emoji: '⚙️',  basePath: '/portals/settings',     accent: '#64748b' },
+      { key: 'events', label: 'Events', emoji: '📡', basePath: '/portals/events', accent: '#6366f1' },
+      { key: 'templates', label: 'Templates', emoji: '📄', basePath: '/portals/templates', accent: '#06b6d4' },
+      { key: 'memory', label: 'Memory', emoji: '🧠', basePath: '/portals/memory', accent: '#a855f7' },
+      { key: 'domain', label: 'Domain', emoji: '🌐', basePath: '/portals/domain', accent: '#f97316' },
+      { key: 'vocab-rules', label: 'Vocab Rules', emoji: '📚', basePath: '/portals/vocab-rules', accent: '#3b82f6' },
+      { key: 'settings', label: 'Settings', emoji: '⚙️', basePath: '/portals/settings', accent: '#64748b' },
       { key: 'dead-letters', label: 'Dead Letters', emoji: '💀', basePath: '/portals/dead-letters', accent: '#ef4444' },
     ],
   },
@@ -136,19 +136,19 @@ function Shell() {
         <Suspense fallback={<Spinner />}>
           <Routes>
             {/* Public */}
-            <Route path="/portals/home/*"      element={<HomeApp />} />
+            <Route path="/portals/home/*" element={<HomeApp />} />
             <Route path="/portals/sdk-guide/*" element={<SDKGuideApp />} />
 
             {/* Auth */}
-            <Route path="/portals/login/*"     element={<LoginApp />} />
+            <Route path="/portals/login/*" element={<LoginApp />} />
 
             {/* Admin */}
-            <Route path="/portals/events/*"       element={<EventsApp />} />
-            <Route path="/portals/templates/*"    element={<TemplatesApp />} />
-            <Route path="/portals/memory/*"       element={<MemoryApp />} />
-            <Route path="/portals/domain/*"       element={<DomainApp />} />
-            <Route path="/portals/vocab-rules/*"  element={<VocabApp />} />
-            <Route path="/portals/settings/*"     element={<SettingsApp />} />
+            <Route path="/portals/events/*" element={<HomeApp />} />
+            <Route path="/portals/templates/*" element={<TemplatesApp />} />
+            <Route path="/portals/memory/*" element={<MemoryApp />} />
+            <Route path="/portals/domain/*" element={<DomainApp />} />
+            <Route path="/portals/vocab-rules/*" element={<VocabApp />} />
+            <Route path="/portals/settings/*" element={<SettingsApp />} />
             <Route path="/portals/dead-letters/*" element={<DLQApp />} />
 
             {/* Default */}
