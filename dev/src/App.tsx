@@ -1,9 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
-/* ── Lazy-load every portal App ── */
-const HomeApp = lazy(() => import('../../home/src/App'));
-const SDKGuideApp = lazy(() => import('../../sdk-guide/src/App'));
 const LoginApp = lazy(() => import('../../login/src/App'));
 //const EventsApp     = lazy(() => import('../../events/src/App'));
 const TemplatesApp = lazy(() => import('../../templates/src/App'));
@@ -135,15 +132,9 @@ function Shell() {
       <main className="dev-content">
         <Suspense fallback={<Spinner />}>
           <Routes>
-            {/* Public */}
-            <Route path="/portals/home/*" element={<HomeApp />} />
-            <Route path="/portals/sdk-guide/*" element={<SDKGuideApp />} />
-
             {/* Auth */}
             <Route path="/portals/login/*" element={<LoginApp />} />
 
-            {/* Admin */}
-            <Route path="/portals/events/*" element={<HomeApp />} />
             <Route path="/portals/templates/*" element={<TemplatesApp />} />
             <Route path="/portals/memory/*" element={<MemoryApp />} />
             <Route path="/portals/domain/*" element={<DomainApp />} />
