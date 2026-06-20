@@ -16,7 +16,15 @@ import ForbiddenPage from './ForbiddenPage';
 const GOOGLE_CLIENT_ID =
   (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID ?? 'YOUR_GOOGLE_CLIENT_ID';
 
-const BASE = (import.meta as any).env?.VITE_PORTAL_BASE ?? '/portals/login/';
+const configuredBase = (import.meta as any).env?.VITE_PORTAL_BASE;
+const defaultBase =
+  typeof window !== 'undefined' && window.location.pathname.startsWith('/portals/login')
+    ? '/portals/login/'
+    : '/';
+const BASE =
+  typeof window !== 'undefined' && window.location.protocol === 'file:'
+    ? undefined
+    : configuredBase ?? defaultBase;
 
 export default function App() {
   return (

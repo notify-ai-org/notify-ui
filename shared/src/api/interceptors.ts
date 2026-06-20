@@ -21,6 +21,7 @@ import axios, {
 import { getApiConfig } from './apiConfig';
 import { logger } from '../logger';
 import { handleApiError } from '../utils/errorHandler';
+import { redirectToForbidden } from '../navigation/portalNavigation';
 
 // ---------------------------------------------------------------------------
 // Public error shape
@@ -99,6 +100,13 @@ export function getAxiosInstance(): AxiosInstance {
     },
     (error: unknown) => {
       const apiError = normaliseError(error);
+      const isLoginPortal = typeof window !== 'undefined'
+        && window.location.pathname.startsWith('/portals/login');
+      if (apiError.status === 401 && !isLoginPortal) {
+        //redirectToLogin();
+      } else if (apiError.status === 403) {
+        redirectToForbidden();
+      }
       // Delegate to the central error handler which will trigger rollback + modal
       handleApiError(apiError);
       return Promise.reject(apiError);
@@ -123,8 +131,10 @@ export function resetAxiosInstance(): void {
 function normaliseError(error: unknown): ApiError {
   if (axios.isAxiosError(error)) {
     const status = error.response?.status ?? 0;
+    const errorPayload = error.response?.data as Record<string, unknown> | undefined;
     const serverMessage =
-      (error.response?.data as Record<string, unknown>)?.message ??
+      errorPayload?.message ??
+      errorPayload?.error ??
       error.message ??
       'An unexpected error occurred';
     const code =

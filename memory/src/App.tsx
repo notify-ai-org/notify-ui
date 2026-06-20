@@ -13,7 +13,15 @@ import type { Fact, MemoryLog, ExpiryConfig } from './types';
 const useD = () => useDispatch<AppDispatch>();
 const useS = <T,>(fn: (s: RootState) => T) => useSelector<RootState, T>(fn);
 const ACCENT = '#a855f7';
-const BASE = import.meta.env.VITE_PORTAL_BASE ?? '/portals/memory/';
+const configuredBase = import.meta.env.VITE_PORTAL_BASE;
+const defaultBase =
+  typeof window !== 'undefined' && window.location.pathname.startsWith('/portals/memory')
+    ? '/portals/memory/'
+    : '/';
+const BASE =
+  typeof window !== 'undefined' && window.location.protocol === 'file:'
+    ? undefined
+    : configuredBase ?? defaultBase;
 
 /* ── Layout ── */
 function Sidebar() {

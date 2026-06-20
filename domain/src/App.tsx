@@ -9,7 +9,15 @@ import type { DomainEntry, DomainField } from './types';
 const useD = () => useDispatch<AppDispatch>();
 const useS = <T,>(fn: (s: RootState) => T) => useSelector<RootState, T>(fn);
 const ACCENT = '#f97316';
-const BASE = import.meta.env.VITE_PORTAL_BASE ?? '/portals/domain/';
+const configuredBase = import.meta.env.VITE_PORTAL_BASE;
+const defaultBase =
+  typeof window !== 'undefined' && window.location.pathname.startsWith('/portals/domain')
+    ? '/portals/domain/'
+    : '/';
+const BASE =
+  typeof window !== 'undefined' && window.location.protocol === 'file:'
+    ? undefined
+    : configuredBase ?? defaultBase;
 
 function Sidebar() {
   return (

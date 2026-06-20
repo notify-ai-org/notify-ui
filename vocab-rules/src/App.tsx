@@ -4,13 +4,21 @@ import { BookOpen, Plus, Search, Trash2, ToggleLeft, ToggleRight, Save, X } from
 import { format, parseISO } from 'date-fns';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from './store';
-import { fetchRules, saveRule, deleteRule, toggleRule } from './store/slices/vocabSlice';
+import { fetchRules, saveRule, deleteRule } from './store/slices/vocabSlice';
 import type { VocabRule } from './types';
 
 const useD = () => useDispatch<AppDispatch>();
 const useS = <T,>(fn: (s: RootState) => T) => useSelector<RootState, T>(fn);
 const ACCENT = '#3b82f6';
-const BASE = import.meta.env.VITE_PORTAL_BASE ?? '/portals/vocab-rules/';
+const configuredBase = import.meta.env.VITE_PORTAL_BASE;
+const defaultBase =
+  typeof window !== 'undefined' && window.location.pathname.startsWith('/portals/vocab-rules')
+    ? '/portals/vocab-rules/'
+    : '/';
+const BASE =
+  typeof window !== 'undefined' && window.location.protocol === 'file:'
+    ? undefined
+    : configuredBase ?? defaultBase;
 
 const PRIORITY_COLORS: Record<number, string> = { 1: '#ef4444', 2: '#f59e0b', 3: '#6366f1', 4: '#22c55e', 5: '#94a3b8' };
 
@@ -68,9 +76,7 @@ function RuleList() {
                   <td style={{ textAlign: 'center', color: r.hitCount > 0 ? ACCENT : '#334155' }}>{r.hitCount.toLocaleString()}</td>
                   <td style={{ color: '#475569' }}>{r.lastHitAt ? format(parseISO(r.lastHitAt), 'MMM d HH:mm') : '—'}</td>
                   <td>
-                    <button className="btn-icon" title={r.active ? 'Pause' : 'Activate'} onClick={e => { e.stopPropagation(); dispatch(toggleRule(r.id)); }}>
-                      {r.active ? <ToggleRight size={18} style={{ color: '#22c55e' }} /> : <ToggleLeft size={18} style={{ color: '#475569' }} />}
-                    </button>
+                    <span className={r.active ? 'badge badge-active' : 'badge badge-inactive'}>{r.active ? 'Active' : 'Inactive'}</span>
                   </td>
                   <td>
                     <button className="btn-icon" style={{ color: '#ef4444' }} onClick={e => { e.stopPropagation(); if (confirm('Delete this rule?')) dispatch(deleteRule(r.id)); }}><Trash2 size={13} /></button>

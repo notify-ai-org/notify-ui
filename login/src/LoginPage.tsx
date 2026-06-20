@@ -4,11 +4,18 @@
  */
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
+import {
+  httpService,
+  useHttp,
+  useLogger,
+  useModal,
+  usePortalNavigation,
+} from '@notify-ui/shared';
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
-type LoginPhase = 'idle' | 'loading' | 'success' | 'error';
+type LoginPhase = 'idle' | 'success';
+type AuthMode = 'login' | 'register';
 
 interface AuthResponse {
   accessToken: string;
@@ -18,21 +25,13 @@ interface AuthResponse {
   name: string;
 }
 
-/* ── Helpers ────────────────────────────────────────────────────────────────── */
-
-function setTokenCookie(token: string) {
-  const expires = new Date(Date.now() + 60 * 60 * 1000).toUTCString();
-  document.cookie = `notify_access_token=${token}; path=/; expires=${expires}; SameSite=Strict`;
+interface RegistrationResponse {
+  clientId: string;
+  applicationName: string;
+  basePackage: string;
 }
 
-function getRedirectTarget(): string {
-  const params = new URLSearchParams(window.location.search);
-  const redirect = params.get('redirect');
-  if (redirect && redirect.startsWith('/portals/') && !redirect.startsWith('/portals/login')) {
-    return redirect;
-  }
-  return '/portals/events';
-}
+
 
 /* ── Animated Background ────────────────────────────────────────────────────── */
 
@@ -101,11 +100,19 @@ function AnimatedBackground() {
 
 /* ── Google Sign-In Button ──────────────────────────────────────────────────── */
 
-function GoogleSignInButton({ onSignIn, disabled }: { onSignIn: (idToken: string) => void; disabled: boolean }) {
+function GoogleSignInButton({
+  onSignIn,
+  onError,
+  disabled,
+}: {
+  onSignIn: (idToken: string) => void;
+  onError: () => void;
+  disabled: boolean;
+}) {
   const login = useGoogleLogin({
     onSuccess: (tokenResponse) =>
       onSignIn((tokenResponse as any).credential ?? (tokenResponse as any).access_token ?? ''),
-    onError: (err) => console.error('Google OAuth error', err),
+    onError,
     flow: 'implicit',
   });
 
@@ -127,10 +134,10 @@ function GoogleSignInButton({ onSignIn, disabled }: { onSignIn: (idToken: string
       onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)'; }}
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
       </svg>
       Continue with Google
     </button>
@@ -141,24 +148,102 @@ function GoogleSignInButton({ onSignIn, disabled }: { onSignIn: (idToken: string
 
 function LoginCard() {
   const [phase, setPhase] = useState<LoginPhase>('idle');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [mode, setMode] = useState<AuthMode>('login');
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const { loading, execute } = useHttp<AuthResponse>();
+  const { show } = useModal();
+  const log = useLogger('LoginPortal');
+  const { navigate, setTokenCookie, getRedirectTarget } = usePortalNavigation();
+
+  const completeLogin = useCallback((auth: AuthResponse) => {
+    setTokenCookie(auth.accessToken);
+    setUser({ name: auth.name, email: auth.email });
+    setPhase('success');
+    log.info('Authentication succeeded', { email: auth.email });
+    show({
+      title: 'Signed in',
+      message: `Welcome, ${auth.name || auth.email}.`,
+      variant: 'success',
+      autoCloseMs: 1000,
+    });
+    setTimeout(() => {
+      const redirect = getRedirectTarget();
+      if (redirect) {
+        window.location.href = redirect;
+      } else {
+        navigate('events');
+      }
+    }, 1200);
+  }, [log, navigate, show]);
+
+  const handleCredentials = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (mode === 'register' && password !== confirmPassword) {
+      show({
+        title: 'Check your password',
+        message: 'The password confirmation does not match.',
+        variant: 'warning',
+        autoCloseMs: 0,
+      });
+      return;
+    }
+
+    log.info('Submitting credential workflow', { mode });
+    const auth = await execute(async () => {
+      if (mode === 'register') {
+        const registration = await httpService.post<RegistrationResponse>('/api/admin/auth/register', {
+          data: { name, email, password },
+        });
+        await httpService.post('/api/client/register', {
+          data: {
+            clientId: registration.data.clientId,
+            applicationName: registration.data.applicationName,
+            basePackage: registration.data.basePackage,
+          },
+        });
+        log.info('Client registered for new account', { clientId: registration.data.clientId });
+      }
+
+      const response = await httpService.post<AuthResponse>('/api/admin/auth/custom-login', {
+        data: { email, password },
+      });
+      return response.data;
+    });
+
+    if (auth) completeLogin(auth);
+  }, [completeLogin, confirmPassword, email, execute, log, mode, name, password, show]);
 
   const handleGoogleToken = useCallback(async (idToken: string) => {
-    setPhase('loading');
-    setErrorMsg('');
-    try {
-      const res = await axios.post<AuthResponse>('/api/admin/auth/google-login', { idToken });
-      const { accessToken, name, email } = res.data;
-      setTokenCookie(accessToken);
-      setUser({ name, email });
-      setPhase('success');
-      setTimeout(() => { window.location.href = getRedirectTarget(); }, 1200);
-    } catch (err: any) {
-      setPhase('error');
-      setErrorMsg(err?.response?.data?.error ?? 'Authentication failed. Please try again.');
-    }
-  }, []);
+    log.info('Submitting Google authentication');
+    const auth = await execute(async () => {
+      const response = await httpService.post<AuthResponse>('/api/admin/auth/google-login', {
+        data: { idToken },
+      });
+      return response.data;
+    });
+    if (auth) completeLogin(auth);
+  }, [completeLogin, execute, log]);
+
+  const handleGoogleError = useCallback(() => {
+    log.error('Google OAuth failed');
+    show({
+      title: 'Google sign-in failed',
+      message: 'Google could not complete the sign-in request. Please try again.',
+      variant: 'error',
+      autoCloseMs: 0,
+    });
+  }, [log, show]);
+
+  const fieldStyle: React.CSSProperties = {
+    width: '100%', padding: '12px 14px', borderRadius: 8,
+    border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.06)',
+    color: '#f1f5f9', fontSize: 14, outline: 'none', fontFamily: 'inherit',
+  };
 
   return (
     <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 420, margin: '0 auto', padding: '0 16px' }}>
@@ -204,33 +289,43 @@ function LoginCard() {
           </div>
         )}
 
-        {phase === 'error' && (
-          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 12, padding: '12px 16px', marginBottom: 20, color: '#ef4444', fontSize: 13, display: 'flex', alignItems: 'flex-start', gap: 8, animation: 'shake 0.4s ease' }}>
-            <span style={{ flexShrink: 0 }}>✕</span>
-            {errorMsg}
-          </div>
+        {phase !== 'success' && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, padding: 4, marginBottom: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 8 }}>
+              {(['login', 'register'] as const).map((nextMode) => (
+                <button key={nextMode} type="button" onClick={() => { setMode(nextMode); setPhase('idle'); }} style={{ border: 0, borderRadius: 6, padding: '9px 12px', background: mode === nextMode ? '#4f46e5' : 'transparent', color: mode === nextMode ? '#fff' : '#94a3b8', cursor: 'pointer', fontSize: 13, fontWeight: 700, textTransform: 'capitalize' }}>
+                  {nextMode}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleCredentials} style={{ display: 'grid', gap: 12 }}>
+              {mode === 'register' && <input required value={name} onChange={event => setName(event.target.value)} placeholder="Full name" autoComplete="name" style={fieldStyle} />}
+              <input required type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="Email address" autoComplete="email" style={fieldStyle} />
+              <input required minLength={8} type="password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} style={fieldStyle} />
+              {mode === 'register' && <input required minLength={8} type="password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} placeholder="Confirm password" autoComplete="new-password" style={fieldStyle} />}
+              <button disabled={loading} type="submit" style={{ width: '100%', padding: '13px 20px', border: 0, borderRadius: 8, background: loading ? '#3730a3' : '#4f46e5', color: '#fff', fontSize: 15, fontWeight: 700, cursor: loading ? 'wait' : 'pointer' }}>
+                {mode === 'login' ? 'Sign in' : 'Create account'}
+              </button>
+            </form>
+
+            <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+              <span style={{ color: '#64748b', fontSize: 12 }}>or</span>
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+            </div>
+
+            <GoogleSignInButton onSignIn={handleGoogleToken} onError={handleGoogleError} disabled={loading} />
+          </>
         )}
 
-        {phase !== 'success' && <GoogleSignInButton onSignIn={handleGoogleToken} disabled={phase === 'loading'} />}
-
-        {phase === 'loading' && (
+        {loading && (
           <div style={{ textAlign: 'center', marginTop: 16, color: '#64748b', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⟳</span>
             Verifying your credentials…
           </div>
         )}
 
-        <div style={{ margin: '28px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-          <span style={{ color: '#334155', fontSize: 12 }}>Secure admin access</span>
-          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 24 }}>
-          {['🔒 TLS 1.3', '🛡 JWT Auth', '🔑 Google OAuth'].map(t => (
-            <span key={t} style={{ color: '#475569', fontSize: 11, fontWeight: 500 }}>{t}</span>
-          ))}
-        </div>
       </div>
 
       <p style={{ textAlign: 'center', marginTop: 24, color: '#334155', fontSize: 12 }}>

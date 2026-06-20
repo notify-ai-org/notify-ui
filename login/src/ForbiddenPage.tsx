@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { httpService, useHttp, useLogger, usePortalNavigation } from '@notify-ui/shared';
 
 /* ──────────────────────────────────────────────────────────────────────────── */
 /*  ANIMATED GLITCH NUMBER                                                      */
@@ -149,26 +150,24 @@ function GridBackground() {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────── */
-/*  LOGOUT HELPER                                                               */
-/* ──────────────────────────────────────────────────────────────────────────── */
-
-async function logout() {
-  // Clear the auth cookie
-  document.cookie = 'notify_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-  // Best-effort server logout
-  try {
-    await fetch('/api/admin/auth/logout', { method: 'POST' });
-  } catch { /* ignore */ }
-  window.location.href = '/portals/login';
-}
-
-/* ──────────────────────────────────────────────────────────────────────────── */
 /*  MAIN COMPONENT                                                              */
 /* ──────────────────────────────────────────────────────────────────────────── */
 
 export default function ForbiddenPage() {
   const [hoverDash, setHoverDash] = useState(false);
   const [hoverLogout, setHoverLogout] = useState(false);
+  const { execute } = useHttp<void>();
+  const log = useLogger('ForbiddenPage');
+  const { navigate } = usePortalNavigation();
+
+  const logout = async () => {
+    document.cookie = 'notify_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    log.info('Signing out from forbidden page');
+    await execute(async () => {
+      await httpService.post('/api/admin/auth/logout', { data: {} });
+    });
+    navigate('login');
+  };
 
   // Read referrer from URL for a friendlier message
   const params = new URLSearchParams(window.location.search);
@@ -279,7 +278,7 @@ export default function ForbiddenPage() {
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button
-            onClick={() => { window.location.href = '/portals/events'; }}
+            onClick={() => navigate('events')}
             onMouseEnter={() => setHoverDash(true)}
             onMouseLeave={() => setHoverDash(false)}
             style={{

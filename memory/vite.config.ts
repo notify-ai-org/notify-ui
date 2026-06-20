@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: process.env.VITE_PORTAL_BASE ?? '/portals/memory/',
+  base: process.env.VITE_PORTAL_BASE ?? './',
   build: { outDir: 'dist', emptyOutDir: true },
   server: {
     port: 5177,

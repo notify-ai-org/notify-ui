@@ -9,7 +9,15 @@ import type { DeadLetterEntry, DLQStatus } from './types';
 
 const useD = () => useDispatch<AppDispatch>();
 const useS = <T,>(fn: (s: RootState) => T) => useSelector<RootState, T>(fn);
-const BASE = import.meta.env.VITE_PORTAL_BASE ?? '/portals/dead-letters/';
+const configuredBase = import.meta.env.VITE_PORTAL_BASE;
+const defaultBase =
+  typeof window !== 'undefined' && window.location.pathname.startsWith('/portals/dead-letters')
+    ? '/portals/dead-letters/'
+    : '/';
+const BASE =
+  typeof window !== 'undefined' && window.location.protocol === 'file:'
+    ? undefined
+    : configuredBase ?? defaultBase;
 
 const STATUS_COLOR: Record<DLQStatus, string> = {
   PENDING: '#f59e0b', RETRYING: '#6366f1', DISCARDED: '#ef4444', RESOLVED: '#22c55e',

@@ -67,6 +67,19 @@ export {
 } from './utils/errorHandler';
 
 // ---------------------------------------------------------------------------
+// Portal navigation
+// ---------------------------------------------------------------------------
+export {
+  currentPortalPath,
+  portalHref,
+  portalPath,
+  redirectToForbidden,
+  redirectToLogin,
+  redirectToPortal,
+} from './navigation/portalNavigation';
+export type { PortalName } from './navigation/portalNavigation';
+
+// ---------------------------------------------------------------------------
 // Logger
 // ---------------------------------------------------------------------------
 export { logger, setLogLevel, setLogTransport } from './logger';
@@ -81,6 +94,9 @@ export { useModal } from './hooks/useModal';
 export type { UseModalReturn } from './hooks/useModal';
 
 export { useLogger } from './hooks/useLogger';
+
+export { usePortalNavigation } from './hooks/usePortalNavigation';
+export type { UsePortalNavigationReturn } from './hooks/usePortalNavigation';
 
 // ---------------------------------------------------------------------------
 // Modal components

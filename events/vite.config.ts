@@ -4,7 +4,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  base: process.env.VITE_PORTAL_BASE ?? '/portals/events/',
+  base: process.env.VITE_PORTAL_BASE ?? './',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),

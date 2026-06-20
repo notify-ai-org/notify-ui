@@ -1,149 +1,80 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Settings, Bell, Shield, Server, Save } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Settings, Save, Search, Database, CloudCog, LockKeyhole } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import type { RootState, AppDispatch } from './store';
+import type { AppDispatch, RootState } from './store';
 import {
-  fetchSystem, fetchNotifs, fetchSecurity,
-  saveSystem, saveNotifs, saveSecurity,
-  patchSystem, patchNotifs, patchSecurity,
+  fetchManagedConfigurations,
+  saveManagedConfiguration,
+  updateValue,
 } from './store/slices/settingsSlice';
-import type { SystemSettings, NotificationSettings, SecuritySettings } from './types';
+import type { ManagedConfiguration } from './types';
 
 const useD = () => useDispatch<AppDispatch>();
-const useS = <T,>(fn: (s: RootState) => T) => useSelector<RootState, T>(fn);
-const ACCENT = '#64748b';
-const BASE = import.meta.env.VITE_PORTAL_BASE ?? '/portals/settings/';
+const useS = <T,>(selector: (state: RootState) => T) => useSelector<RootState, T>(selector);
 
-function Sidebar() {
+function SourceBadge({ source }: { source: ManagedConfiguration['source'] }) {
+  const isDatabase = source === 'DB';
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <Settings size={20} style={{ color: '#94a3b8' }} />
-        <span style={{ color: '#f1f5f9' }}>Settings</span>
-      </div>
-      <span className="nav-section-label">Configuration</span>
-      {[{ to: '/', label: 'System', icon: Server }, { to: '/notifications', label: 'Notifications', icon: Bell }, { to: '/security', label: 'Security', icon: Shield }]
-        .map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} end className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-            <Icon size={15} />{label}
-          </NavLink>
-        ))}
-    </aside>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: isDatabase ? '#60a5fa' : '#fbbf24', fontSize: 12 }}>
+      {isDatabase ? <Database size={13} /> : <CloudCog size={13} />}
+      {isDatabase ? 'Database' : 'ConfigMap'}
+    </span>
   );
-}
-
-type FieldType = 'text' | 'number' | 'boolean' | 'select';
-function SettingsSection<T extends object>({
-  title, icon: Icon, data, saving, fields, onSave, onChange,
-}: {
-  title: string;
-  icon: React.ComponentType<any>;
-  data: T | null;
-  saving: boolean;
-  fields: Array<{ key: keyof T; label: string; type: FieldType; options?: string[] }>;
-  onSave: (d: T) => void;
-  onChange: (patch: Partial<T>) => void;
-}) {
-  if (!data) return <div style={{ padding: 40, textAlign: 'center', color: '#475569' }}>Loading settings…</div>;
-
-  return (
-    <div className="card">
-      <div className="card-header">
-        <span className="card-title"><Icon size={15} /> {title}</span>
-        <button className="btn btn-primary" disabled={saving} onClick={() => onSave(data)}><Save size={13} />{saving ? 'Saving…' : 'Save'}</button>
-      </div>
-      <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-        {fields.map(({ key, label, type, options }) => (
-          <div key={String(key)} className="form-group">
-            <label className="form-label">{label}</label>
-            {type === 'boolean' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                <input type="checkbox" checked={Boolean(data[key])} style={{ accentColor: '#6366f1', width: 16, height: 16 }}
-                  onChange={e => onChange({ [key]: e.target.checked } as any)} />
-                <span style={{ color: Boolean(data[key]) ? '#22c55e' : '#475569', fontSize: 13 }}>{Boolean(data[key]) ? 'Enabled' : 'Disabled'}</span>
-              </div>
-            ) : type === 'select' ? (
-              <select className="form-input" value={String(data[key])} onChange={e => onChange({ [key]: e.target.value } as any)}>
-                {options?.map(o => <option key={o}>{o}</option>)}
-              </select>
-            ) : (
-              <input className="form-input" type={type === 'number' ? 'number' : 'text'} value={String(data[key])}
-                onChange={e => onChange({ [key]: type === 'number' ? Number(e.target.value) : e.target.value } as any)} />
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SystemPage() {
-  const dispatch = useD();
-  const { system, saving } = useS(s => (s as any).settings) as any;
-  useEffect(() => { dispatch(fetchSystem()); }, [dispatch]);
-  return <SettingsSection<SystemSettings> title="System Settings" icon={Server} data={system} saving={saving}
-    onSave={d => dispatch(saveSystem(d))} onChange={p => dispatch(patchSystem(p))}
-    fields={[
-      { key: 'maxRetries', label: 'Max Retries', type: 'number' },
-      { key: 'retryDelayMs', label: 'Retry Delay (ms)', type: 'number' },
-      { key: 'captureTimeoutMs', label: 'Capture Timeout (ms)', type: 'number' },
-      { key: 'notificationBatchSize', label: 'Notification Batch Size', type: 'number' },
-      { key: 'logRetentionDays', label: 'Log Retention (days)', type: 'number' },
-      { key: 'enableAuditLog', label: 'Audit Log', type: 'boolean' },
-      { key: 'defaultLocale', label: 'Default Locale', type: 'select', options: ['en-US', 'en-GB', 'de-DE', 'fr-FR', 'ja-JP'] },
-      { key: 'defaultTimezone', label: 'Default Timezone', type: 'select', options: ['UTC', 'America/New_York', 'Europe/London', 'Asia/Kolkata', 'Asia/Tokyo'] },
-    ]}
-  />;
-}
-
-function NotifPage() {
-  const dispatch = useD();
-  const { notifications, saving } = useS(s => (s as any).settings) as any;
-  useEffect(() => { dispatch(fetchNotifs()); }, [dispatch]);
-  return <SettingsSection<NotificationSettings> title="Notification Settings" icon={Bell} data={notifications} saving={saving}
-    onSave={d => dispatch(saveNotifs(d))} onChange={p => dispatch(patchNotifs(p))}
-    fields={[
-      { key: 'emailProvider', label: 'Email Provider', type: 'select', options: ['SENDGRID', 'SES', 'MAILGUN', 'SMTP'] },
-      { key: 'smsProvider', label: 'SMS Provider', type: 'select', options: ['TWILIO', 'VONAGE', 'AWS_SNS'] },
-      { key: 'pushProvider', label: 'Push Provider', type: 'select', options: ['FCM', 'APNS', 'ONE_SIGNAL'] },
-      { key: 'maxDailyEmailsPerTenant', label: 'Max Daily Emails / Tenant', type: 'number' },
-      { key: 'maxDailySmsPerTenant', label: 'Max Daily SMS / Tenant', type: 'number' },
-      { key: 'rateLimitWindowMs', label: 'Rate Limit Window (ms)', type: 'number' },
-    ]}
-  />;
-}
-
-function SecPage() {
-  const dispatch = useD();
-  const { security, saving } = useS(s => (s as any).settings) as any;
-  useEffect(() => { dispatch(fetchSecurity()); }, [dispatch]);
-  return <SettingsSection<SecuritySettings> title="Security Settings" icon={Shield} data={security} saving={saving}
-    onSave={d => dispatch(saveSecurity(d))} onChange={p => dispatch(patchSecurity(p))}
-    fields={[
-      { key: 'jwtExpirySeconds', label: 'JWT Expiry (seconds)', type: 'number' },
-      { key: 'refreshTokenExpiryDays', label: 'Refresh Token Expiry (days)', type: 'number' },
-      { key: 'maxLoginAttempts', label: 'Max Login Attempts', type: 'number' },
-      { key: 'lockoutDurationMs', label: 'Lockout Duration (ms)', type: 'number' },
-      { key: 'requireMfa', label: 'Require MFA', type: 'boolean' },
-    ]}
-  />;
 }
 
 export default function App() {
+  const dispatch = useD();
+  const { items, loading, savingKey } = useS(state => (state as any).settings) as {
+    items: ManagedConfiguration[];
+    loading: boolean;
+    savingKey: string | null;
+  };
+  const [query, setQuery] = useState('');
+
+  useEffect(() => { dispatch(fetchManagedConfigurations()); }, [dispatch]);
+
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return term ? items.filter(item => `${item.key} ${item.description}`.toLowerCase().includes(term)) : items;
+  }, [items, query]);
+
   return (
-    <BrowserRouter basename={BASE}>
-      <div className="app-shell">
-        <Sidebar />
-        <header className="topbar"><div><div className="topbar-title">Settings</div><div className="topbar-subtitle">System, notification and security configuration</div></div></header>
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<SystemPage />} />
-            <Route path="/notifications" element={<NotifPage />} />
-            <Route path="/security" element={<SecPage />} />
-          </Routes>
-        </main>
-      </div>
-    </BrowserRouter>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="sidebar-logo"><Settings size={20} style={{ color: '#94a3b8' }} /><span style={{ color: '#f1f5f9' }}>Settings</span></div>
+        <span className="nav-section-label">Configuration</span>
+        <div className="nav-item active"><Settings size={15} /> Managed configuration</div>
+      </aside>
+      <header className="topbar"><div><div className="topbar-title">Managed Configuration</div><div className="topbar-subtitle">Runtime configuration discovered from managed fields</div></div></header>
+      <main className="main-content">
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title"><Settings size={15} /> Managed keys</span>
+            <div className="search-input" style={{ width: 280 }}><Search size={14} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Filter configuration" /></div>
+          </div>
+          {loading ? <div style={{ padding: 32, color: '#64748b' }}>Loading managed configuration...</div> : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="data-table">
+                <thead><tr><th>Key</th><th>Value</th><th>Source</th><th>Type</th><th></th></tr></thead>
+                <tbody>{filtered.map(item => (
+                  <tr key={item.key}>
+                    <td><div className="mono" style={{ color: '#e2e8f0', fontSize: 12 }}>{item.key}</div><div style={{ color: '#64748b', fontSize: 11, marginTop: 4 }}>{item.description}</div></td>
+                    <td style={{ minWidth: 250 }}>
+                      {item.sensitive ? <span style={{ color: '#94a3b8', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}><LockKeyhole size={13} /> Managed outside the portal</span> : (
+                        <input className="form-input" disabled={!item.editable} value={item.value ?? ''} onChange={event => dispatch(updateValue({ key: item.key, value: event.target.value }))} />
+                      )}
+                    </td>
+                    <td><SourceBadge source={item.source} /></td>
+                    <td><span className="mono" style={{ color: '#64748b', fontSize: 11 }}>{item.valueType}</span></td>
+                    <td><button className="btn btn-primary" disabled={!item.editable || savingKey === item.key} onClick={() => dispatch(saveManagedConfiguration({ key: item.key, value: item.value ?? '' }))}><Save size={13} />{savingKey === item.key ? 'Saving...' : 'Save'}</button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+              {!filtered.length && <div style={{ padding: 32, textAlign: 'center', color: '#64748b' }}>No managed configuration keys found.</div>}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }

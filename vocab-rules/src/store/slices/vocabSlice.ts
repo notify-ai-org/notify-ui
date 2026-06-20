@@ -9,7 +9,6 @@ export const saveRule = createAsyncThunk('vocab/save', ({ id, data }: { id: stri
   id ? httpService.put<VocabRule>(`/api/admin/vocab-rules/${id}`, { data, invalidateKey: 'vocab:rules', successModal: { title: 'Rule saved', message: '', variant: 'success', autoCloseMs: 2000 } })
      : httpService.post<VocabRule>('/api/admin/vocab-rules', { data, invalidateKey: 'vocab:rules', successModal: { title: 'Rule created', message: '', variant: 'success', autoCloseMs: 2000 } }));
 export const deleteRule = createAsyncThunk('vocab/delete', (id: string) => httpService.delete<void>(`/api/admin/vocab-rules/${id}`, { invalidateKey: 'vocab:rules' }));
-export const toggleRule = createAsyncThunk('vocab/toggle', (id: string) => httpService.patch<VocabRule>(`/api/admin/vocab-rules/${id}/toggle`, { invalidateKey: 'vocab:rules' }));
 const slice = createSlice({ name: 'vocab', initialState: { items: [], loading: false, saving: false } as State, reducers: {}, extraReducers: b => {
   b.addCase(fetchRules.pending, s => { s.loading = true; });
   b.addCase(fetchRules.fulfilled, (s, a) => { s.loading = false; s.items = a.payload ?? []; });

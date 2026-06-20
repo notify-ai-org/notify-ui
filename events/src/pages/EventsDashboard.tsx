@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Sidebar, Topbar } from '../components/layout/Layout';
 import { MetricsDashboard } from '../components/charts/MetricsDashboard';
 import { RegisteredEventsTable } from '../components/tables/RegisteredEvents';
@@ -23,13 +23,11 @@ export function EventsDashboard() {
       <Sidebar />
       <Topbar onRefresh={handleRefresh} />
       <main className="main-content">
-        <Routes>
-          <Route path="/" element={<MetricsDashboard />} />
-          <Route path="/registered" element={<RegisteredEventsTable />} />
-          <Route path="/scheduled" element={<ScheduledEventsTable />} />
-          <Route path="/capture-log" element={<CaptureLog />} />
-          <Route path="/notif-log" element={<NotificationLog />} />
-        </Routes>
+        <MetricsDashboard />
+        <RegisteredEventsTable />
+        <ScheduledEventsTable />
+        <CaptureLog />
+        <NotificationLog />
       </main>
     </div>
   );

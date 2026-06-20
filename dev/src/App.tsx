@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { portalHref } from './portalNavigation';
 
 const LoginApp = lazy(() => import('../../login/src/App'));
 //const EventsApp     = lazy(() => import('../../events/src/App'));
@@ -61,7 +62,6 @@ function Spinner() {
 
 /* ── Welcome screen ── */
 function Welcome() {
-  const navigate = useNavigate();
   return (
     <div className="dev-welcome">
       <div style={{ fontSize: 48, marginBottom: 8 }}>⚡</div>
@@ -69,7 +69,7 @@ function Welcome() {
       <p>Select a portal from the sidebar to get started, or jump straight in:</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 16 }}>
         {ALL_PORTALS.map(p => (
-          <button key={p.key} onClick={() => navigate(p.basePath + '/')}
+          <button key={p.key} onClick={() => { window.location.href = portalHref(p.key); }}
             style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${p.accent}44`, background: `${p.accent}11`, color: p.accent, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
             {p.emoji} {p.label}
           </button>
@@ -96,7 +96,6 @@ function TopBar() {
 
 /* ── Portal sidebar ── */
 function PortalSidebar() {
-  const navigate = useNavigate();
   const loc = useLocation();
 
   const activeKey = ALL_PORTALS.find(p => loc.pathname.startsWith(p.basePath))?.key ?? '';
@@ -110,7 +109,7 @@ function PortalSidebar() {
             <button
               key={p.key}
               className={`dev-portal-btn${activeKey === p.key ? ' active' : ''}`}
-              onClick={() => navigate(p.basePath + '/')}
+              onClick={() => { window.location.href = portalHref(p.key); }}
             >
               <span className="dev-portal-emoji">{p.emoji}</span>
               <span className="dev-portal-dot" style={{ background: p.accent, opacity: activeKey === p.key ? 1 : 0.3 }} />

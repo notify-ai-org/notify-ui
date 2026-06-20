@@ -18,7 +18,15 @@ const CHANNEL_COLORS: Record<TemplateChannel, string> = {
   EMAIL: '#6366f1', SMS: '#22c55e', PUSH: '#f59e0b', WEBHOOK: '#ef4444', IN_APP: '#a855f7',
 };
 
-const BASE = import.meta.env.VITE_PORTAL_BASE ?? '/portals/templates/';
+const configuredBase = import.meta.env.VITE_PORTAL_BASE;
+const defaultBase =
+  typeof window !== 'undefined' && window.location.pathname.startsWith('/portals/templates')
+    ? '/portals/templates/'
+    : '/';
+const BASE =
+  typeof window !== 'undefined' && window.location.protocol === 'file:'
+    ? undefined
+    : configuredBase ?? defaultBase;
 
 /* ── Sidebar ── */
 function Sidebar() {

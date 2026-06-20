@@ -7,7 +7,15 @@ import { store } from './store';
 import { EventsDashboard } from './pages/EventsDashboard';
 import './styles/global.css';
 
-const base = import.meta.env.VITE_PORTAL_BASE ?? '/portals/events/';
+const configuredBase = import.meta.env.VITE_PORTAL_BASE;
+const defaultBase =
+  typeof window !== 'undefined' && window.location.pathname.startsWith('/portals/events')
+    ? '/portals/events/'
+    : '/';
+const base =
+  typeof window !== 'undefined' && window.location.protocol === 'file:'
+    ? undefined
+    : configuredBase ?? defaultBase;
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

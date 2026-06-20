@@ -80,8 +80,9 @@ build_portal() {
   log "Building portal: $name …"
   cd "$portal_dir"
   npm ci --prefer-offline --silent
-  # Inject the Vite base path so all asset URLs in the generated HTML are correct
-  VITE_PORTAL_BASE="/portals/$name/" npm run build --silent
+  # Keep built asset URLs relative so portals work from both file:// previews
+  # and their normalized /portals/<name>/ server routes.
+  npm run build --silent
   # Replace the previous build in the Spring Boot static folder
   rm -rf "$STATIC_OUT/$name"
   cp -r dist "$STATIC_OUT/$name"
