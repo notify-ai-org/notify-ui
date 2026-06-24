@@ -16,10 +16,25 @@ interface RegisteredEventsState {
 
 export const fetchRegisteredEvents = createAsyncThunk(
   'registeredEvents/fetch',
-  () => httpService.get<RegisteredEvent[]>('/api/admin/events/registered', {
+  () => httpService.get<{ content: RegisteredEvent[] }>('/api/admin/data/events', {
     cacheKey: 'events:registered',
     ttlMs: 60_000,
-  }),
+  }).then(page => page.content ?? []),
+);
+
+export const updateRegisteredEvent = createAsyncThunk(
+  'registeredEvents/update',
+  ({ id, event }: { id: string; event: Partial<RegisteredEvent> }) =>
+    httpService.put<RegisteredEvent>(`/api/admin/data/events/${id}`, {
+      data: event, invalidateKey: 'events:registered', successModal: null,
+    }).then(response => response.data),
+);
+
+export const deleteRegisteredEvent = createAsyncThunk(
+  'registeredEvents/delete',
+  (id: string) => httpService.delete(`/api/admin/data/events/${id}`, {
+    invalidateKey: 'events:registered', successModal: null,
+  }).then(() => id),
 );
 
 const registeredEventsSlice = createSlice({
@@ -30,6 +45,11 @@ const registeredEventsSlice = createSlice({
     b.addCase(fetchRegisteredEvents.pending, (s) => { s.loading = true; s.error = null; });
     b.addCase(fetchRegisteredEvents.fulfilled, (s, a) => { s.loading = false; s.items = a.payload ?? []; });
     b.addCase(fetchRegisteredEvents.rejected, (s, a) => { s.loading = false; s.error = a.error.message ?? 'Failed'; });
+    b.addCase(updateRegisteredEvent.fulfilled, (s, a) => {
+      const index = s.items.findIndex(item => item.id === a.payload?.id);
+      if (index >= 0 && a.payload) s.items[index] = a.payload;
+    });
+    b.addCase(deleteRegisteredEvent.fulfilled, (s, a) => { s.items = s.items.filter(item => item.id !== a.payload); });
   },
 });
 

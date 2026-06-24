@@ -7,16 +7,16 @@ import {
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchMetrics } from '../../store/slices/eventsSlices';
 
-const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444'];
+const COLORS = ['#facc15', '#22c55e', '#f59e0b', '#ef4444'];
 
 const METRIC_DEFS = [
   {
     key: 'totalEvents',
     label: 'Total Events',
     icon: Zap,
-    iconBg: 'rgba(99,102,241,0.15)',
-    iconColor: '#818cf8',
-    glow: 'linear-gradient(135deg, #6366f1, #818cf8)',
+    iconBg: 'rgba(250,204,21,0.15)',
+    iconColor: '#fde047',
+    glow: 'rgba(250,204,21,0.12)',
   },
   {
     key: 'activeEvents',
@@ -30,9 +30,9 @@ const METRIC_DEFS = [
     key: 'totalCaptures24h',
     label: 'Captures (24h)',
     icon: TrendingUp,
-    iconBg: 'rgba(59,130,246,0.15)',
-    iconColor: '#3b82f6',
-    glow: 'linear-gradient(135deg, #3b82f6, #60a5fa)',
+    iconBg: 'rgba(250,204,21,0.15)',
+    iconColor: '#facc15',
+    glow: 'rgba(250,204,21,0.12)',
   },
   {
     key: 'totalNotifications24h',
@@ -40,16 +40,16 @@ const METRIC_DEFS = [
     icon: Bell,
     iconBg: 'rgba(245,158,11,0.15)',
     iconColor: '#f59e0b',
-    glow: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+    glow: 'rgba(245,158,11,0.12)',
   },
   {
     key: 'avgProcessingTimeMs',
     label: 'Avg Processing',
     icon: Clock,
-    iconBg: 'rgba(168,85,247,0.15)',
-    iconColor: '#a855f7',
+    iconBg: 'rgba(250,204,21,0.15)',
+    iconColor: '#facc15',
     format: (v: number) => `${v.toFixed(0)}ms`,
-    glow: 'linear-gradient(135deg, #a855f7, #c084fc)',
+    glow: 'rgba(250,204,21,0.12)',
   },
   {
     key: 'failureRate',
@@ -58,7 +58,7 @@ const METRIC_DEFS = [
     iconBg: 'rgba(239,68,68,0.15)',
     iconColor: '#ef4444',
     format: (v: number) => `${(v * 100).toFixed(1)}%`,
-    glow: 'linear-gradient(135deg, #ef4444, #f87171)',
+    glow: 'rgba(239,68,68,0.12)',
   },
 ];
 
@@ -66,8 +66,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: '#161d35',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: '#191811',
+      border: '1px solid rgba(250,204,21,0.18)',
       borderRadius: 8,
       padding: '10px 14px',
       fontSize: 12,
@@ -135,8 +135,8 @@ export function MetricsDashboard() {
               <AreaChart data={data.captureTimeline}>
                 <defs>
                   <linearGradient id="captGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#facc15" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#facc15" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="notifGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#22c55e" stopOpacity={0.25} />
@@ -148,7 +148,7 @@ export function MetricsDashboard() {
                 <YAxis tick={{ fill: '#475569', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8' }} />
-                <Area type="monotone" dataKey="captures" name="Captures" stroke="#6366f1" fill="url(#captGrad)" strokeWidth={2} dot={false} />
+                <Area type="monotone" dataKey="captures" name="Captures" stroke="#facc15" fill="url(#captGrad)" strokeWidth={2} dot={false} />
                 <Area type="monotone" dataKey="notifications" name="Notifications" stroke="#22c55e" fill="url(#notifGrad)" strokeWidth={2} dot={false} />
                 <Area type="monotone" dataKey="failures" name="Failures" stroke="#ef4444" fill="none" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
               </AreaChart>
@@ -205,7 +205,7 @@ export function MetricsDashboard() {
               <XAxis type="number" tick={{ fill: '#475569', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="key" tick={{ fill: '#94a3b8', fontSize: 12 }} width={80} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="captures" name="Captures" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={14} />
+              <Bar dataKey="captures" name="Captures" fill="#facc15" radius={[0, 4, 4, 0]} barSize={14} />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -8,8 +8,9 @@
 #
 # Usage:
 #   ./notify-ui/build-all.sh                  # build everything
-#   ./notify-ui/build-all.sh --skip-shared    # skip rebuilding shared library
-#   ./notify-ui/build-all.sh --portal events  # build only one portal
+#   ./notify-ui/build-all.sh --skip-shared       # skip rebuilding shared library
+#   ./notify-ui/build-all.sh login clients       # build selected portals
+#   ./notify-ui/build-all.sh --portal events     # legacy alias for one portal
 #
 # Exit codes:
 #   0  success
@@ -30,6 +31,9 @@ PORTALS=(
   sdk-guide
   login
   events
+  schedules
+  logs
+  clients
   templates
   memory
   domain
@@ -40,13 +44,24 @@ PORTALS=(
 
 # ── Flags ─────────────────────────────────────────────────────────────────────
 SKIP_SHARED=false
-ONLY_PORTAL=""
+SELECTED_PORTALS=()
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --skip-shared) SKIP_SHARED=true ; shift ;;
-    --portal)      ONLY_PORTAL="$2" ; shift 2 ;;
-    *) echo "Unknown flag: $1" ; exit 1 ;;
+    --portal)
+      [[ $# -ge 2 ]] || { echo "--portal requires a portal name" >&2; exit 1; }
+      SELECTED_PORTALS+=("$2")
+      shift 2
+      ;;
+    --*)
+      echo "Unknown option: $1" >&2
+      exit 1
+      ;;
+    *)
+      SELECTED_PORTALS+=("$1")
+      shift
+      ;;
   esac
 done
 
@@ -55,6 +70,23 @@ log()  { echo -e "\033[1;34m▶\033[0m  $*"; }
 ok()   { echo -e "\033[1;32m✓\033[0m  $*"; }
 warn() { echo -e "\033[1;33m⚠\033[0m  $*"; }
 err()  { echo -e "\033[1;31m✗\033[0m  $*" >&2; }
+
+is_known_portal() {
+  local candidate="$1"
+  local portal
+  for portal in "${PORTALS[@]}"; do
+    [[ "$portal" == "$candidate" ]] && return 0
+  done
+  return 1
+}
+
+for portal in "${SELECTED_PORTALS[@]}"; do
+  if ! is_known_portal "$portal"; then
+    err "Unknown portal: $portal"
+    err "Available portals: ${PORTALS[*]}"
+    exit 1
+  fi
+done
 
 # ── 1. Build shared library ───────────────────────────────────────────────────
 if [[ "$SKIP_SHARED" == "false" ]]; then
@@ -89,9 +121,11 @@ build_portal() {
   ok "Portal '$name'  →  $STATIC_OUT/$name"
 }
 
-if [[ -n "$ONLY_PORTAL" ]]; then
-  # Single-portal mode
-  build_portal "$ONLY_PORTAL"
+if [[ ${#SELECTED_PORTALS[@]} -gt 0 ]]; then
+  # Positional portal names select a focused build. No names means build all.
+  for portal in "${SELECTED_PORTALS[@]}"; do
+    build_portal "$portal"
+  done
 else
   # Parallel mode: launch all builds simultaneously, collect exit codes.
   # Use two parallel arrays (portal names + PIDs) — compatible with bash 3.x on macOS.

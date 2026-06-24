@@ -4,25 +4,25 @@
 
 /* ── Custom properties ─────────────────────────────────────────────────────── */
 :root {
-  --bg-base:       #0a0e1a;
-  --bg-surface:    #0f1628;
-  --bg-elevated:   #161d35;
-  --bg-hover:      #1e2847;
-  --border:        rgba(255,255,255,0.07);
-  --border-accent: rgba(99,102,241,0.4);
+  --bg-base:       #090909;
+  --bg-surface:    #11110d;
+  --bg-elevated:   #191811;
+  --bg-hover:      #252313;
+  --border:        rgba(250,204,21,0.18);
+  --border-accent: rgba(250,204,21,0.7);
 
-  --accent:        #6366f1;
-  --accent-light:  #818cf8;
-  --accent-glow:   rgba(99,102,241,0.15);
+  --accent:        #facc15;
+  --accent-light:  #fde047;
+  --accent-glow:   rgba(250,204,21,0.13);
 
   --success:       #22c55e;
   --warning:       #f59e0b;
   --danger:        #ef4444;
   --info:          #3b82f6;
 
-  --text-primary:  #f1f5f9;
-  --text-secondary:#94a3b8;
-  --text-muted:    #475569;
+  --text-primary:  #faf8ef;
+  --text-secondary:#d0c9a8;
+  --text-muted:    #8d855f;
 
   --font-sans:     'Inter', system-ui, sans-serif;
   --font-mono:     'JetBrains Mono', monospace;
@@ -32,7 +32,7 @@
   --radius-lg:     16px;
 
   --shadow-card:   0 4px 24px rgba(0,0,0,0.4);
-  --shadow-glow:   0 0 40px rgba(99,102,241,0.12);
+  --shadow-glow:   0 0 32px rgba(250,204,21,0.08);
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────────── */

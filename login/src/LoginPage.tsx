@@ -4,32 +4,24 @@
  */
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
+import { useDispatch } from 'react-redux';
 import {
-  httpService,
   useHttp,
   useLogger,
   useModal,
   usePortalNavigation,
+  login as loginThunk,
+  googleLogin as googleLoginThunk,
+  createClient as createClientThunk,
 } from '@notify-ui/shared';
+import type { AuthResponse, RegistrationResponse } from '@notify-ui/shared';
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
 type LoginPhase = 'idle' | 'success';
 type AuthMode = 'login' | 'register';
 
-interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  tenantId: string;
-  email: string;
-  name: string;
-}
-
-interface RegistrationResponse {
-  clientId: string;
-  applicationName: string;
-  basePackage: string;
-}
+// using AuthResponse and RegistrationResponse from shared
 
 
 
@@ -68,7 +60,7 @@ function AnimatedBackground() {
         if (p.y < 0 || p.y > height) p.vy *= -1;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(129,140,248,${p.alpha})`;
+        ctx.fillStyle = `rgba(250,204,21,${p.alpha})`;
         ctx.fill();
       });
       for (let i = 0; i < particles.length; i++) {
@@ -80,7 +72,7 @@ function AnimatedBackground() {
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(99,102,241,${0.12 * (1 - dist / 120)})`;
+            ctx.strokeStyle = `rgba(250,204,21,${0.12 * (1 - dist / 120)})`;
             ctx.lineWidth = 0.8;
             ctx.stroke();
           }
@@ -123,15 +115,15 @@ function GoogleSignInButton({
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
         width: '100%', padding: '13px 20px',
-        background: disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)',
-        border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12,
-        color: '#f1f5f9', fontSize: 15, fontWeight: 600,
+        background: 'transparent',
+        border: `1px solid ${disabled ? 'rgba(250,204,21,0.28)' : 'rgba(250,204,21,0.24)'}`, borderRadius: 12,
+        color: disabled ? '#8d855f' : '#fde047', fontSize: 15, fontWeight: 600,
         fontFamily: 'Inter, system-ui, sans-serif',
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'all 0.2s', backdropFilter: 'blur(10px)',
       }}
-      onMouseEnter={e => { if (!disabled) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.14)'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = disabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)'; }}
+      onMouseEnter={e => { if (!disabled) (e.currentTarget as HTMLButtonElement).style.borderColor = '#fde047'; }}
+      onMouseLeave={e => { if (!disabled) (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(250,204,21,0.24)'; }}
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -158,6 +150,7 @@ function LoginCard() {
   const { show } = useModal();
   const log = useLogger('LoginPortal');
   const { navigate, setTokenCookie, getRedirectTarget } = usePortalNavigation();
+  const dispatch = useDispatch<any>();
 
   const completeLogin = useCallback((auth: AuthResponse) => {
     setTokenCookie(auth.accessToken);
@@ -196,23 +189,12 @@ function LoginCard() {
     log.info('Submitting credential workflow', { mode });
     const auth = await execute(async () => {
       if (mode === 'register') {
-        const registration = await httpService.post<RegistrationResponse>('/api/admin/auth/register', {
-          data: { name, email, password },
-        });
-        await httpService.post('/api/client/register', {
-          data: {
-            clientId: registration.data.clientId,
-            applicationName: registration.data.applicationName,
-            basePackage: registration.data.basePackage,
-          },
-        });
-        log.info('Client registered for new account', { clientId: registration.data.clientId });
+        const registration = await dispatch(createClientThunk({ name, email, password })).unwrap();
+        log.info('Client registered for new account', { clientId: registration.clientId });
       }
 
-      const response = await httpService.post<AuthResponse>('/api/admin/auth/custom-login', {
-        data: { email, password },
-      });
-      return response.data;
+      const response = await dispatch(loginThunk({ email, password })).unwrap();
+      return response;
     });
 
     if (auth) completeLogin(auth);
@@ -221,10 +203,8 @@ function LoginCard() {
   const handleGoogleToken = useCallback(async (idToken: string) => {
     log.info('Submitting Google authentication');
     const auth = await execute(async () => {
-      const response = await httpService.post<AuthResponse>('/api/admin/auth/google-login', {
-        data: { idToken },
-      });
-      return response.data;
+      const response = await dispatch(googleLoginThunk(idToken)).unwrap();
+      return response;
     });
     if (auth) completeLogin(auth);
   }, [completeLogin, execute, log]);
@@ -240,10 +220,31 @@ function LoginCard() {
   }, [log, show]);
 
   const fieldStyle: React.CSSProperties = {
-    width: '100%', padding: '12px 14px', borderRadius: 8,
+    padding: '12px 14px', borderRadius: 8,
     border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.06)',
     color: '#f1f5f9', fontSize: 14, outline: 'none', fontFamily: 'inherit',
   };
+
+  const borderStyle: React.CSSProperties = {
+    background: 'rgba(17,17,13,0.88)',
+    border: '1px solid rgba(250,204,21,0.24)',
+    borderRadius: 24, padding: '40px 36px',
+    backdropFilter: 'blur(24px)',
+    boxShadow: '0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+    position: 'relative',
+  }
+
+  const borderButtonStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '13px 20px',
+    border: `1px solid ${loading ? 'rgba(250,204,21,0.28)' : 'rgba(250,204,21,0.24)'}`,
+    borderRadius: 8,
+    background: 'transparent',
+    color: loading ? '#8d855f' : '#fde047',
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: loading ? 'wait' : 'pointer'
+  }
 
   return (
     <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 420, margin: '0 auto', padding: '0 16px' }}>
@@ -251,33 +252,19 @@ function LoginCard() {
         position: 'absolute', top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
         width: 320, height: 320,
-        background: 'radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(250,204,21,0.18) 0%, transparent 70%)',
         filter: 'blur(40px)', pointerEvents: 'none',
       }} />
 
-      <div style={{
-        background: 'rgba(15,22,40,0.75)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 24, padding: '40px 36px',
-        backdropFilter: 'blur(24px)',
-        boxShadow: '0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
-        position: 'relative',
-      }}>
+      <div style={borderStyle}>
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 16,
-            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px',
-            boxShadow: '0 8px 32px rgba(99,102,241,0.4)',
-            fontSize: 26,
-          }}>⚡</div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5, color: '#f1f5f9', margin: 0 }}>
-            Notify Admin
-          </h1>
+        <div style={{ textAlign: 'center', marginBottom: 36, cursor: 'pointer' }}>
+          <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.025em', display: 'inline-block' }}>
+            <span style={{ color: '#ffffff' }}>Notify</span>
+            <span style={{ background: 'linear-gradient(135deg, #facc15 0%, #fde047 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>.ai</span>
+          </div>
           <p style={{ marginTop: 6, color: '#64748b', fontSize: 14 }}>
-            Sign in to access the admin portal
+            Admin console
           </p>
         </div>
 
@@ -293,7 +280,14 @@ function LoginCard() {
           <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, padding: 4, marginBottom: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 8 }}>
               {(['login', 'register'] as const).map((nextMode) => (
-                <button key={nextMode} type="button" onClick={() => { setMode(nextMode); setPhase('idle'); }} style={{ border: 0, borderRadius: 6, padding: '9px 12px', background: mode === nextMode ? '#4f46e5' : 'transparent', color: mode === nextMode ? '#fff' : '#94a3b8', cursor: 'pointer', fontSize: 13, fontWeight: 700, textTransform: 'capitalize' }}>
+                <button key={nextMode} type="button" onClick={() => { setMode(nextMode); setPhase('idle'); }} style={{
+                  border: `1px solid ${mode == nextMode ? '#fde047' : 'rgba(250,204,21,0.24)'}`,
+                  borderRadius: 6,
+                  padding: '9px 12px',
+                  background: 'transparent',
+                  color: mode === nextMode ? '#fde047' : 'rgba(250,204,21,0.24)',
+                  cursor: 'pointer', fontSize: 13, fontWeight: 700, textTransform: 'capitalize'
+                }}>
                   {nextMode}
                 </button>
               ))}
@@ -304,7 +298,7 @@ function LoginCard() {
               <input required type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="Email address" autoComplete="email" style={fieldStyle} />
               <input required minLength={8} type="password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} style={fieldStyle} />
               {mode === 'register' && <input required minLength={8} type="password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} placeholder="Confirm password" autoComplete="new-password" style={fieldStyle} />}
-              <button disabled={loading} type="submit" style={{ width: '100%', padding: '13px 20px', border: 0, borderRadius: 8, background: loading ? '#3730a3' : '#4f46e5', color: '#fff', fontSize: 15, fontWeight: 700, cursor: loading ? 'wait' : 'pointer' }}>
+              <button disabled={loading} type="submit" style={borderButtonStyle}>
                 {mode === 'login' ? 'Sign in' : 'Create account'}
               </button>
             </form>
@@ -340,14 +334,12 @@ function LoginCard() {
 export default function LoginPage() {
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'radial-gradient(ellipse at 60% 0%, #0d1433 0%, #080c18 60%, #020408 100%)',
+      minHeight: '100dvh', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: '#090909',
       fontFamily: 'Inter, system-ui, sans-serif',
       position: 'relative', overflow: 'hidden',
     }}>
       <AnimatedBackground />
-      <div style={{ position: 'fixed', top: '-15vw', right: '-10vw', width: '40vw', height: '40vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'fixed', bottom: '-20vw', left: '-10vw', width: '50vw', height: '50vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(168,85,247,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
       <LoginCard />
     </div>
   );

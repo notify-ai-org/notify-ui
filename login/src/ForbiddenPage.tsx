@@ -286,15 +286,15 @@ export default function ForbiddenPage() {
               borderRadius: 10,
               border: 'none',
               background: hoverDash
-                ? 'linear-gradient(135deg, #4f46e5, #7c3aed)'
-                : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                ? '#fde047'
+                : '#facc15',
               color: '#fff',
               fontSize: 14,
               fontWeight: 600,
               cursor: 'pointer',
               fontFamily: 'Inter, system-ui, sans-serif',
               transition: 'all 0.2s',
-              boxShadow: hoverDash ? '0 8px 24px rgba(99,102,241,0.4)' : '0 4px 12px rgba(99,102,241,0.25)',
+              boxShadow: hoverDash ? '0 8px 24px rgba(250,204,21,0.32)' : '0 4px 12px rgba(250,204,21,0.2)',
               display: 'flex',
               alignItems: 'center',
               gap: 8,

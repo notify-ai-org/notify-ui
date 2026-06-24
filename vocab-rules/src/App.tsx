@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { PortalSidebar, ProfileMenu, httpService } from '@notify-ui/shared';
 import { BookOpen, Plus, Search, Trash2, ToggleLeft, ToggleRight, Save, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,7 +10,7 @@ import type { VocabRule } from './types';
 
 const useD = () => useDispatch<AppDispatch>();
 const useS = <T,>(fn: (s: RootState) => T) => useSelector<RootState, T>(fn);
-const ACCENT = '#3b82f6';
+const ACCENT = '#facc15';
 const configuredBase = import.meta.env.VITE_PORTAL_BASE;
 const defaultBase =
   typeof window !== 'undefined' && window.location.pathname.startsWith('/portals/vocab-rules')
@@ -20,24 +21,38 @@ const BASE =
     ? undefined
     : configuredBase ?? defaultBase;
 
-const PRIORITY_COLORS: Record<number, string> = { 1: '#ef4444', 2: '#f59e0b', 3: '#6366f1', 4: '#22c55e', 5: '#94a3b8' };
+const PRIORITY_COLORS: Record<number, string> = { 1: '#ef4444', 2: '#f59e0b', 3: '#facc15', 4: '#22c55e', 5: '#94a3b8' };
 
-function Sidebar() {
-  return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <BookOpen size={20} style={{ color: ACCENT }} />
-        <span style={{ background: `linear-gradient(135deg, ${ACCENT}, #60a5fa)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Vocab Rules</span>
-      </div>
-      <span className="nav-section-label">Rules</span>
-      {[{ to: '/', label: 'All Rules', icon: BookOpen }, { to: '/new', label: 'New Rule', icon: Plus }]
-        .map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} end className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-            <Icon size={15} />{label}
-          </NavLink>
-        ))}
-    </aside>
-  );
+type VocabularyNode = { id: number; term: string; description?: string; type?: string; children: VocabularyNode[] };
+
+function VocabularyTree() {
+  const [items, setItems] = useState<VocabularyNode[]>([]);
+  const [open, setOpen] = useState<Set<number>>(new Set());
+
+  useEffect(() => { void httpService.get<VocabularyNode[]>('/api/admin/vocabulary', { ttlMs: 0 }).then(setItems); }, []);
+
+  const Node = ({ node, depth }: { node: VocabularyNode; depth: number }) =>
+    <div style={{ marginLeft: depth * 18 }}>
+      <button className="btn btn-ghost"
+        style={{ padding: '4px 0', border: 0, color: '#fde047' }}
+        onClick={() => setOpen(current => { const next = new Set(current); next.has(node.id) ? next.delete(node.id) : next.add(node.id); return next; })}>
+        {node.children.length ? (open.has(node.id) ? '▾' : '▸') : '·'} {node.term}
+      </button>
+      {node.description && <span style={{ marginLeft: 8, color: '#8d855f', fontSize: 12 }}>{node.description}</span>}
+      {open.has(node.id) && node.children.map(child => <Node key={child.id} node={child} depth={depth + 1} />)}
+    </div>;
+
+  return <div className="card">
+    <div className="card-header">
+      <span className="card-title">
+        <BookOpen size={15} /> Vocabulary
+      </span>
+    </div>
+    <div className="card-body">
+      {items.map(node => <Node key={node.id} node={node} depth={0} />)}
+      {!items.length && <span style={{ color: '#8d855f' }}>No vocabulary terms found.</span>}
+    </div>
+  </div>;
 }
 
 function RuleList() {
@@ -54,41 +69,44 @@ function RuleList() {
   );
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <span className="card-title"><BookOpen size={15} /> Vocabulary Rules</span>
-        <button className="btn btn-primary" onClick={() => navigate('/new')}><Plus size={13} /> New Rule</button>
+    <>
+      <VocabularyTree />
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title"><BookOpen size={15} /> Vocabulary Rules</span>
+          <button className="btn btn-primary" onClick={() => navigate('/new')}><Plus size={13} /> New Rule</button>
+        </div>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="search-input"><Search size={14} /><input placeholder="Search by name or event…" value={search} onChange={e => setSearch(e.target.value)} /></div>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          {loading ? <div style={{ padding: 24 }}>{[...Array(4)].map((_, i) => <div key={i} className="skeleton" style={{ height: 40, marginBottom: 8, borderRadius: 6 }} />)}</div> : (
+            <table className="data-table">
+              <thead><tr><th>Name</th><th>Event</th><th>Priority</th><th>Action</th><th>Hits</th><th>Last Hit</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                {filtered.map((r: VocabRule) => (
+                  <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/edit/${r.id}`)}>
+                    <td style={{ fontWeight: 500, color: '#f1f5f9' }}>{r.name}</td>
+                    <td><span className="mono" style={{ color: '#94a3b8', fontSize: 11 }}>{r.eventKey}</span></td>
+                    <td><span style={{ color: PRIORITY_COLORS[r.priority] ?? '#94a3b8', fontWeight: 600 }}>P{r.priority}</span></td>
+                    <td style={{ color: '#64748b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.action}</td>
+                    <td style={{ textAlign: 'center', color: r.hitCount > 0 ? ACCENT : '#334155' }}>{r.hitCount.toLocaleString()}</td>
+                    <td style={{ color: '#475569' }}>{r.lastHitAt ? format(parseISO(r.lastHitAt), 'MMM d HH:mm') : '—'}</td>
+                    <td>
+                      <span className={r.active ? 'badge badge-active' : 'badge badge-inactive'}>{r.active ? 'Active' : 'Inactive'}</span>
+                    </td>
+                    <td>
+                      <button className="btn-icon" style={{ color: '#ef4444' }} onClick={e => { e.stopPropagation(); if (confirm('Delete this rule?')) dispatch(deleteRule(r.id)); }}><Trash2 size={13} /></button>
+                    </td>
+                  </tr>
+                ))}
+                {!filtered.length && <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: '#475569' }}>No vocab rules found</td></tr>}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
-      <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-        <div className="search-input"><Search size={14} /><input placeholder="Search by name or event…" value={search} onChange={e => setSearch(e.target.value)} /></div>
-      </div>
-      <div style={{ overflowX: 'auto' }}>
-        {loading ? <div style={{ padding: 24 }}>{[...Array(4)].map((_, i) => <div key={i} className="skeleton" style={{ height: 40, marginBottom: 8, borderRadius: 6 }} />)}</div> : (
-          <table className="data-table">
-            <thead><tr><th>Name</th><th>Event</th><th>Priority</th><th>Action</th><th>Hits</th><th>Last Hit</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-              {filtered.map((r: VocabRule) => (
-                <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/edit/${r.id}`)}>
-                  <td style={{ fontWeight: 500, color: '#f1f5f9' }}>{r.name}</td>
-                  <td><span className="mono" style={{ color: '#94a3b8', fontSize: 11 }}>{r.eventKey}</span></td>
-                  <td><span style={{ color: PRIORITY_COLORS[r.priority] ?? '#94a3b8', fontWeight: 600 }}>P{r.priority}</span></td>
-                  <td style={{ color: '#64748b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.action}</td>
-                  <td style={{ textAlign: 'center', color: r.hitCount > 0 ? ACCENT : '#334155' }}>{r.hitCount.toLocaleString()}</td>
-                  <td style={{ color: '#475569' }}>{r.lastHitAt ? format(parseISO(r.lastHitAt), 'MMM d HH:mm') : '—'}</td>
-                  <td>
-                    <span className={r.active ? 'badge badge-active' : 'badge badge-inactive'}>{r.active ? 'Active' : 'Inactive'}</span>
-                  </td>
-                  <td>
-                    <button className="btn-icon" style={{ color: '#ef4444' }} onClick={e => { e.stopPropagation(); if (confirm('Delete this rule?')) dispatch(deleteRule(r.id)); }}><Trash2 size={13} /></button>
-                  </td>
-                </tr>
-              ))}
-              {!filtered.length && <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: '#475569' }}>No vocab rules found</td></tr>}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -139,9 +157,6 @@ function RuleEditor({ isNew }: { isNew?: boolean }) {
         <Field label="Condition (SpEL expression)">
           <textarea className="form-input" rows={4} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }} value={form.condition ?? ''} onChange={e => set('condition', e.target.value)} placeholder="#payload.amount > 500 and #payload.tier == 'PREMIUM'" />
         </Field>
-        <Field label="Action">
-          <textarea className="form-input" rows={4} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }} value={form.action ?? ''} onChange={e => set('action', e.target.value)} placeholder="SEND_NOTIFICATION(template='premium-order-confirm')" />
-        </Field>
       </div>
     </div>
   );
@@ -151,8 +166,8 @@ export default function App() {
   return (
     <BrowserRouter basename={BASE}>
       <div className="app-shell">
-        <Sidebar />
-        <header className="topbar"><div><div className="topbar-title">Vocab Rules</div><div className="topbar-subtitle">Manage vocabulary-based matching rules</div></div></header>
+        <PortalSidebar />
+        <header className="topbar"><div><div className="topbar-title">Vocab Rules</div><div className="topbar-subtitle">Manage vocabulary-based matching rules</div></div><ProfileMenu /></header>
         <main className="main-content">
           <Routes>
             <Route path="/" element={<RuleList />} />

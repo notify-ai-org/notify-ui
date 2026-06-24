@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, NavLink, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
+import { PortalSidebar, ProfileMenu } from '@notify-ui/shared';
 import { FileText, Plus, Search, CheckCircle, AlertTriangle, Trash2, Edit2, Eye, Save, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,9 +14,9 @@ import type { Template, TemplateChannel } from './types';
 const useAppDispatch = () => useDispatch<AppDispatch>();
 const useAppSelector = <T,>(fn: (s: RootState) => T) => useSelector<RootState, T>(fn);
 
-const ACCENT = '#06b6d4';
+const ACCENT = '#facc15';
 const CHANNEL_COLORS: Record<TemplateChannel, string> = {
-  EMAIL: '#6366f1', SMS: '#22c55e', PUSH: '#f59e0b', WEBHOOK: '#ef4444', IN_APP: '#a855f7',
+  EMAIL: '#facc15', SMS: '#22c55e', PUSH: '#f59e0b', WEBHOOK: '#ef4444', IN_APP: '#fde047',
 };
 
 const configuredBase = import.meta.env.VITE_PORTAL_BASE;
@@ -28,33 +29,13 @@ const BASE =
     ? undefined
     : configuredBase ?? defaultBase;
 
-/* ── Sidebar ── */
-function Sidebar() {
-  return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <FileText size={20} style={{ color: ACCENT }} />
-        <span style={{ background: `linear-gradient(135deg, ${ACCENT}, #818cf8)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Templates</span>
-      </div>
-      <span className="nav-section-label">Browse</span>
-      {[
-        { to: '/', label: 'All Templates', icon: FileText },
-        { to: '/new', label: 'New Template', icon: Plus },
-      ].map(({ to, label, icon: Icon }) => (
-        <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-          <Icon size={15} />{label}
-        </NavLink>
-      ))}
-    </aside>
-  );
-}
-
 /* ── Templates list ── */
 function TemplateList() {
   const dispatch = useAppDispatch();
   const { items, loading } = useAppSelector(s => (s as any).templates);
   const [search, setSearch] = useState('');
   const [channel, setChannel] = useState<TemplateChannel | 'ALL'>('ALL');
+  const [eventInfo, setEventInfo] = useState<Template | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => { dispatch(fetchTemplates()); }, [dispatch]);
@@ -85,29 +66,49 @@ function TemplateList() {
       <div style={{ overflowX: 'auto' }}>
         {loading ? <div style={{ padding: 24 }}>{[...Array(4)].map((_, i) => <div key={i} className="skeleton" style={{ height: 40, marginBottom: 8, borderRadius: 6 }} />)}</div> : (
           <table className="data-table">
-            <thead><tr><th>Name</th><th>Channel</th><th>Event</th><th>Version</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Event</th><th>Channel</th><th>Subject</th><th>Description</th><th>Created At</th><th>Actions</th></tr></thead>
             <tbody>
               {filtered.map((t: Template) => (
                 <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/edit/${t.id}`)}>
-                  <td style={{ color: '#f1f5f9', fontWeight: 500 }}>{t.name}</td>
+                  <td><button className="btn btn-ghost" style={{ padding: 0, border: 0, color: '#fde047' }} onClick={e => { e.stopPropagation(); setEventInfo(t); }}>{t.eventKey}</button></td>
                   <td><span className="badge" style={{ background: `${CHANNEL_COLORS[t.channel]}22`, color: CHANNEL_COLORS[t.channel] }}>{t.channel}</span></td>
-                  <td><span className="mono" style={{ color: '#94a3b8' }}>{t.eventKey}</span></td>
-                  <td className="mono" style={{ color: '#475569' }}>v{t.version}</td>
-                  <td><span className={`badge badge-${t.status.toLowerCase()}`}>{t.status}</span></td>
-                  <td style={{ color: '#475569' }}>{format(parseISO(t.updatedAt), 'MMM d, HH:mm')}</td>
+                  <td>{t.subject || '—'}</td>
+                  <td style={{ maxWidth: 250, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#94a3b8' }}>{t.body || t.name}</td>
+                  <td style={{ color: '#475569' }}>{format(parseISO(t.createdAt), 'MMM d, HH:mm')}</td>
                   <td>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn-icon" title="Edit" onClick={e => { e.stopPropagation(); navigate(`/edit/${t.id}`); }}><Edit2 size={13} /></button>
+                      <button className="btn-icon" title="View template" onClick={e => { e.stopPropagation(); navigate(`/edit/${t.id}`); }}><Eye size={13} /></button>
                       <button className="btn-icon" title="Delete" style={{ color: '#ef4444' }} onClick={e => handleDelete(e, t.id)}><Trash2 size={13} /></button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {!filtered.length && <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: '#475569' }}>No templates found</td></tr>}
+              {!filtered.length && <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: '#475569' }}>No templates found</td></tr>}
             </tbody>
           </table>
         )}
       </div>
+      {eventInfo && <div className="modal-overlay" onClick={() => setEventInfo(null)}>
+        <div className="modal-box" onClick={event => event.stopPropagation()}>
+          <div className="modal-header">
+            <span className="modal-title">Event details</span>
+            <button className="btn-icon" onClick={() => setEventInfo(null)}><X size={15} /></button>
+          </div>
+          <div className="modal-body" style={{ display: 'grid', gap: 10, color: '#d0c9a8' }}>
+            <div><span className="form-label">Event</span>
+              <div className="mono">{eventInfo.eventKey}</div>
+            </div>
+            <div><span className="form-label">Template</span>
+              <div>{eventInfo.name}</div>
+            </div>
+            <div>
+              <span className="form-label">Channel</span>
+              <div>{eventInfo.channel}</div>
+            </div>
+            <div>
+              <span className="form-label">Description</span><div>{eventInfo.body || 'No description available.'}</div>
+            </div>
+          </div></div></div>}
     </div>
   );
 }
@@ -209,7 +210,7 @@ function TemplateEditor({ isNew }: { isNew?: boolean }) {
               {validation.resolvedVariables.length > 0 && (
                 <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' as const }}>
                   {validation.resolvedVariables.map((v: string) => (
-                    <span key={v} style={{ background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '2px 8px', borderRadius: 20, fontSize: 11 }}>{'{{' + v + '}}'}</span>
+                    <span key={v} style={{ background: 'rgba(250,204,21,0.12)', color: '#fde047', padding: '2px 8px', borderRadius: 20, fontSize: 11 }}>{'{{' + v + '}}'}</span>
                   ))}
                 </div>
               )}
@@ -236,9 +237,10 @@ export default function App() {
   return (
     <BrowserRouter basename={BASE}>
       <div className="app-shell">
-        <Sidebar />
+        <PortalSidebar />
         <header className="topbar">
           <div><div className="topbar-title">Templates</div><div className="topbar-subtitle">Manage notification templates</div></div>
+          <ProfileMenu />
         </header>
         <main className="main-content">
           <Routes>

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Settings, Save, Search, Database, CloudCog, LockKeyhole } from 'lucide-react';
+import { PortalSidebar } from '@notify-ui/shared';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from './store';
 import {
@@ -40,11 +41,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="sidebar-logo"><Settings size={20} style={{ color: '#94a3b8' }} /><span style={{ color: '#f1f5f9' }}>Settings</span></div>
-        <span className="nav-section-label">Configuration</span>
-        <div className="nav-item active"><Settings size={15} /> Managed configuration</div>
-      </aside>
+      <PortalSidebar />
       <header className="topbar"><div><div className="topbar-title">Managed Configuration</div><div className="topbar-subtitle">Runtime configuration discovered from managed fields</div></div></header>
       <main className="main-content">
         <div className="card">

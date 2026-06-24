@@ -17,14 +17,15 @@ import { useModal } from '../hooks/useModal';
 import type { ModalConfig, ModalVariant } from '../types';
 
 // ---------------------------------------------------------------------------
-// Colour palette per variant
+// Variant icons retain the message meaning while the modal itself uses the shared
+// black-and-gold application theme.
 // ---------------------------------------------------------------------------
 
-const VARIANT_COLORS: Record<ModalVariant, { bg: string; border: string; icon: string }> = {
-  success: { bg: '#f0fdf4', border: '#22c55e', icon: '✓' },
-  error:   { bg: '#fef2f2', border: '#ef4444', icon: '✕' },
-  warning: { bg: '#fffbeb', border: '#f59e0b', icon: '⚠' },
-  info:    { bg: '#eff6ff', border: '#3b82f6', icon: 'ℹ' },
+const VARIANT_ICONS: Record<ModalVariant, string> = {
+  success: '✓',
+  error: '✕',
+  warning: '!',
+  info: 'i',
 };
 
 // ---------------------------------------------------------------------------
@@ -38,7 +39,7 @@ interface NotifyModalProps {
 
 export function NotifyModal({ config, onClose }: NotifyModalProps) {
   const { title, message, variant, autoCloseMs, confirmLabel, onConfirm } = config;
-  const colors = VARIANT_COLORS[variant];
+  const icon = VARIANT_ICONS[variant];
 
   // Auto-close timer
   useEffect(() => {
@@ -64,20 +65,21 @@ export function NotifyModal({ config, onClose }: NotifyModalProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(0,0,0,0.45)',
+        backgroundColor: 'rgba(0,0,0,0.74)',
+        backdropFilter: 'blur(8px)',
         animation: 'notify-fade-in 0.15s ease',
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         style={{
-          background: colors.bg,
-          border: `2px solid ${colors.border}`,
+          background: 'rgba(17,17,13,0.96)',
+          border: '1px solid rgba(250,204,21,0.48)',
           borderRadius: '12px',
-          padding: '32px',
+          padding: '28px',
           maxWidth: '480px',
           width: '90%',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.64), inset 0 1px 0 rgba(250,204,21,0.12)',
           fontFamily: 'Inter, system-ui, sans-serif',
         }}
       >
@@ -88,27 +90,28 @@ export function NotifyModal({ config, onClose }: NotifyModalProps) {
               fontSize: '24px',
               width: '40px',
               height: '40px',
-              borderRadius: '50%',
-              background: colors.border,
-              color: '#fff',
+              borderRadius: '8px',
+              border: '1px solid #facc15',
+              background: 'transparent',
+              color: '#facc15',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            {colors.icon}
+            {icon}
           </span>
           <h2
             id="notify-modal-title"
-            style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#1a1a2e' }}
+            style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#fde047' }}
           >
             {title}
           </h2>
         </div>
 
         {/* Message */}
-        <p style={{ margin: '0 0 24px', color: '#374151', lineHeight: 1.6 }}>{message}</p>
+        <p style={{ margin: '0 0 24px', color: '#d0c9a8', lineHeight: 1.6 }}>{message}</p>
 
         {/* Actions */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
@@ -121,7 +124,7 @@ export function NotifyModal({ config, onClose }: NotifyModalProps) {
           {confirmLabel && (
             <button
               onClick={handleConfirm}
-              style={{ ...ghostButtonStyle, background: colors.border, color: '#fff', border: 'none' }}
+              style={{ ...ghostButtonStyle, borderColor: '#fde047', color: '#fde047' }}
             >
               {confirmLabel}
             </button>
@@ -178,11 +181,11 @@ export function ModalProvider({ children }: ModalProviderProps) {
 const ghostButtonStyle: React.CSSProperties = {
   padding: '8px 20px',
   borderRadius: '8px',
-  border: '1.5px solid #d1d5db',
+  border: '1px solid rgba(250,204,21,0.7)',
   background: 'transparent',
   cursor: 'pointer',
   fontSize: '14px',
-  fontWeight: 500,
-  color: '#374151',
-  transition: 'background 0.15s',
+  fontWeight: 700,
+  color: '#facc15',
+  transition: 'border-color 0.15s, color 0.15s',
 };

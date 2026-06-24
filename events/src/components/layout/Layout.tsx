@@ -1,41 +1,6 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  Zap, BarChart2, Calendar, FileText, Bell, RefreshCw,
-} from 'lucide-react';
-
-const NAV = [
-  { to: '/',            label: 'Overview',          icon: BarChart2 },
-  { to: '/registered',  label: 'Registered Events',  icon: Zap },
-  { to: '/scheduled',   label: 'Scheduled Events',   icon: Calendar },
-  { to: '/capture-log', label: 'Capture Log',        icon: FileText },
-  { to: '/notif-log',   label: 'Notification Log',   icon: Bell },
-];
-
-export function Sidebar() {
-  return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <Zap size={22} style={{ color: '#818cf8' }} />
-        <span>Events Portal</span>
-      </div>
-
-      <span className="nav-section-label">Navigation</span>
-
-      {NAV.map(({ to, label, icon: Icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={to === '/'}
-          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-        >
-          <Icon size={16} />
-          {label}
-        </NavLink>
-      ))}
-    </aside>
-  );
-}
+import { useLocation } from 'react-router-dom';
+import { ProfileMenu } from '@notify-ui/shared';
 
 interface TopbarProps {
   onRefresh?: () => void;
@@ -61,12 +26,7 @@ export function Topbar({ onRefresh, loading }: TopbarProps) {
         <div className="topbar-subtitle">{info.subtitle}</div>
       </div>
       <div className="topbar-actions">
-        {onRefresh && (
-          <button className="btn btn-ghost" onClick={onRefresh} disabled={loading}>
-            <RefreshCw size={14} style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
-            Refresh
-          </button>
-        )}
+        <ProfileMenu />
       </div>
     </header>
   );

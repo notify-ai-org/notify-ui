@@ -1,170 +1,83 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, NavLink, useNavigate, useParams } from 'react-router-dom';
-import { Globe, FileCode, List, Save, Plus, Trash2 } from 'lucide-react';
-import { useDispatch, useSelector } from 'react-redux';
-import type { RootState, AppDispatch } from './store';
-import { fetchDomains, fetchDomainForm, saveDomainForm } from './store/slices/domainSlice';
-import type { DomainEntry, DomainField } from './types';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { Globe, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { PortalSidebar, ProfileMenu, httpService } from '@notify-ui/shared';
 
-const useD = () => useDispatch<AppDispatch>();
-const useS = <T,>(fn: (s: RootState) => T) => useSelector<RootState, T>(fn);
-const ACCENT = '#f97316';
-const configuredBase = import.meta.env.VITE_PORTAL_BASE;
-const defaultBase =
-  typeof window !== 'undefined' && window.location.pathname.startsWith('/portals/domain')
-    ? '/portals/domain/'
-    : '/';
-const BASE =
-  typeof window !== 'undefined' && window.location.protocol === 'file:'
-    ? undefined
-    : configuredBase ?? defaultBase;
+const VALUE_TYPES = ['TEXT', 'IMAGE', 'FILE', 'NUMBER', 'DATE', 'RANGE'] as const;
 
-function Sidebar() {
-  return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <Globe size={20} style={{ color: ACCENT }} />
-        <span style={{ background: `linear-gradient(135deg, ${ACCENT}, #fb923c)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Domain</span>
-      </div>
-      <span className="nav-section-label">Content</span>
-      {[{ to: '/', label: 'Domains', icon: List }, { to: '/forms', label: 'Content Forms', icon: FileCode }]
-        .map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} end className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-            <Icon size={15} />{label}
-          </NavLink>
-        ))}
-    </aside>
-  );
-}
-
-function DomainList() {
-  const dispatch = useD();
-  const { domains, loading } = useS(s => (s as any).domains) as any;
-  const navigate = useNavigate();
-
-  useEffect(() => { dispatch(fetchDomains()); }, [dispatch]);
-
-  return (
-    <div className="card">
-      <div className="card-header"><span className="card-title"><Globe size={15} /> Registered Domains</span></div>
-      <div style={{ overflowX: 'auto' }}>
-        {loading ? <div style={{ padding: 24 }}>{[...Array(4)].map((_, i) => <div key={i} className="skeleton" style={{ height: 48, marginBottom: 10, borderRadius: 8 }} />)}</div> : (
-          <table className="data-table">
-            <thead><tr><th>Domain</th><th>Description</th><th>Schema</th><th>Fields</th><th>Status</th></tr></thead>
-            <tbody>
-              {(domains as DomainEntry[]).map(d => (
-                <tr key={d.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/forms/${d.id}`)}>
-                  <td style={{ color: '#f1f5f9', fontWeight: 600 }}>{d.name}</td>
-                  <td style={{ color: '#94a3b8' }}>{d.description}</td>
-                  <td><span className="mono" style={{ color: '#64748b', fontSize: 11 }}>{d.schemaVersion}</span></td>
-                  <td style={{ textAlign: 'center' }}>{d.fieldCount}</td>
-                  <td><span className={`badge badge-${d.active ? 'active' : 'inactive'}`}>{d.active ? 'ACTIVE' : 'INACTIVE'}</span></td>
-                </tr>
-              ))}
-              {!domains.length && <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#475569' }}>No domains registered</td></tr>}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const FIELD_TYPES = ['STRING', 'NUMBER', 'BOOLEAN', 'DATE', 'OBJECT', 'ARRAY'] as const;
-
-function DomainFormEditor() {
-  const { id } = useParams<{ id: string }>();
-  const dispatch = useD();
-  const navigate = useNavigate();
-  const { form, saving } = useS(s => (s as any).domains) as any;
-
-  useEffect(() => { if (id) dispatch(fetchDomainForm(id)); }, [id]);
-
-  const addField = () => {
-    if (!form) return;
-    const newField: DomainField = { name: '', type: 'STRING', required: false, description: '', defaultValue: null };
-    dispatch({ type: 'domains/setForm', payload: { ...form, fields: [...form.fields, newField] } });
-  };
-
-  const updateField = (idx: number, patch: Partial<DomainField>) => {
-    if (!form) return;
-    const fields = form.fields.map((f: DomainField, i: number) => i === idx ? { ...f, ...patch } : f);
-    dispatch({ type: 'domains/setForm', payload: { ...form, fields } });
-  };
-
-  const removeField = (idx: number) => {
-    if (!form) return;
-    dispatch({ type: 'domains/setForm', payload: { ...form, fields: form.fields.filter((_: any, i: number) => i !== idx) } });
-  };
-
-  if (!form) return <div style={{ padding: 40, color: '#475569', textAlign: 'center' }}>Loading form…</div>;
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div className="card">
-        <div className="card-header">
-          <span className="card-title"><FileCode size={15} /> {form.title}</span>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-ghost" onClick={() => navigate('/')}>← Back</button>
-            <button className="btn btn-primary" disabled={saving} onClick={() => dispatch(saveDomainForm({ id: id!, form }))}>
-              <Save size={13} />{saving ? 'Saving…' : 'Save Form'}
-            </button>
-          </div>
-        </div>
-        <div className="card-body">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <span style={{ color: '#94a3b8', fontSize: 13 }}>{form.fields.length} fields defined</span>
-            <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={addField}><Plus size={13} /> Add Field</button>
-          </div>
-          <table className="data-table">
-            <thead><tr><th>Field Name</th><th>Type</th><th>Required</th><th>Description</th><th>Default</th><th></th></tr></thead>
-            <tbody>
-              {form.fields.map((f: DomainField, i: number) => (
-                <tr key={i}>
-                  <td><input className="form-input" value={f.name} onChange={e => updateField(i, { name: e.target.value })} placeholder="field_name" /></td>
-                  <td>
-                    <select className="form-input" value={f.type} onChange={e => updateField(i, { type: e.target.value as any })}>
-                      {FIELD_TYPES.map(t => <option key={t}>{t}</option>)}
-                    </select>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <input type="checkbox" checked={f.required} onChange={e => updateField(i, { required: e.target.checked })} style={{ accentColor: ACCENT }} />
-                  </td>
-                  <td><input className="form-input" value={f.description} onChange={e => updateField(i, { description: e.target.value })} placeholder="Description" /></td>
-                  <td><input className="form-input" style={{ width: 120 }} defaultValue={String(f.defaultValue ?? '')} placeholder="—" /></td>
-                  <td><button className="btn-icon" style={{ color: '#ef4444' }} onClick={() => removeField(i)}><Trash2 size={13} /></button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div className="card">
-        <div className="card-header"><span className="card-title">Sample Payload</span></div>
-        <div className="card-body">
-          <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#94a3b8', margin: 0 }}>
-            {JSON.stringify(form.samplePayload, null, 2)}
-          </pre>
-        </div>
-      </div>
-    </div>
-  );
-}
+type ValueType = typeof VALUE_TYPES[number];
+type DomainContent = {
+  id: string;
+  keyName?: string;
+  description?: string;
+  content?: string;
+  type?: string;
+  valueType?: ValueType;
+  clientId?: string;
+  version?: number;
+};
+type PagedResponse<T> = { content: T[] };
 
 export default function App() {
+  const [items, setItems] = useState<DomainContent[]>([]);
+  const [editorValue, setEditorValue] = useState<DomainContent | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const load = async () => {
+    const page = await httpService.get<PagedResponse<DomainContent>>('/api/admin/data/domain-content', {
+      params: { page: 0, size: 100 },
+      ttlMs: 0,
+    });
+    setItems(page.content ?? []);
+  };
+
+  useEffect(() => { void load(); }, []);
+
+  const deleteContent = async (id: string) => {
+    if (!window.confirm('Delete this domain content entry?')) return;
+    await httpService.delete(`/api/admin/data/domain-content/${id}`, { successModal: null });
+    await load();
+  };
+
+  const closeEditor = () => {
+    setEditorValue(null);
+    setCreating(false);
+  };
+
   return (
-    <BrowserRouter basename={BASE}>
+    <BrowserRouter>
       <div className="app-shell">
-        <Sidebar />
-        <header className="topbar"><div><div className="topbar-title">Domain Content</div><div className="topbar-subtitle">Manage domain schemas and content forms</div></div></header>
+        <PortalSidebar />
+        <header className="topbar">
+          <div><div className="topbar-title">Domain Content</div><div className="topbar-subtitle">Manage domain-specific values</div></div>
+          <ProfileMenu />
+        </header>
         <main className="main-content">
-          <Routes>
-            <Route path="/" element={<DomainList />} />
-            <Route path="/forms" element={<DomainList />} />
-            <Route path="/forms/:id" element={<DomainFormEditor />} />
-          </Routes>
+          <section className="card">
+            <div className="card-header">
+              <span className="card-title"><Globe size={15} /> Content entries</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-icon" title="Refresh content" onClick={() => void load()}><RefreshCw size={14} /></button>
+                <button className="btn btn-primary" onClick={() => setCreating(true)}><Plus size={14} /> New entry</button>
+              </div>
+            </div>
+            <ContentTable items={items} onEdit={setEditorValue} onDelete={deleteContent} />
+          </section>
         </main>
+        {(creating || editorValue) && <ContentEditor initialValue={editorValue} onClose={closeEditor} onSaved={load} />}
       </div>
     </BrowserRouter>
   );
 }
+
+function ContentTable({ items, onEdit, onDelete }: { items: DomainContent[]; onEdit: (item: DomainContent) => void; onDelete: (id: string) => Promise<void> }) {
+  return <div style={{ overflowX: 'auto' }}><table className="data-table"><thead><tr><th>Domain Key</th><th>Description</th><th>Value</th><th>Value Type</th><th>Actions</th></tr></thead><tbody>{items.map(item => <tr key={item.id}><td className="mono" style={{ color: '#fde047' }}>{item.keyName || '—'}</td><td>{item.description || '—'}</td><td style={{ maxWidth: 380, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.content || '—'}</td><td>{item.valueType || 'TEXT'}</td><td><div style={{ display: 'flex', gap: 5 }}><button className="btn-icon" title="Edit content" onClick={() => onEdit(item)}><Pencil size={14} /></button><button className="btn-icon" title="Delete content" style={{ color: '#ef4444' }} onClick={() => void onDelete(item.id)}><Trash2 size={14} /></button></div></td></tr>)}{!items.length && <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: '#8d855f' }}>No domain content entries found.</td></tr>}</tbody></table></div>;
+}
+
+function ContentEditor({ initialValue, onClose, onSaved }: { initialValue: DomainContent | null; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [value, setValue] = useState<DomainContent>(initialValue ?? { keyName: '', description: '', content: '', type: 'FULL', valueType: 'TEXT' });
+  const save = async () => { const body = { ...value, type: value.type || 'FULL', valueType: value.valueType || 'TEXT' }; if (initialValue) await httpService.put(`/api/admin/data/domain-content/${initialValue.id}`, { data: body, successModal: null }); else await httpService.post('/api/admin/data/domain-content', { data: body, successModal: null }); await onSaved(); onClose(); };
+  return <div className="modal-overlay"><div className="modal-box"><div className="modal-header"><span className="modal-title">{initialValue ? 'Edit domain content' : 'New domain content'}</span><button className="btn-icon" onClick={onClose}><X size={15} /></button></div><div className="modal-body" style={{ display: 'grid', gap: 12 }}><TextField label="Domain key" value={value.keyName ?? ''} onChange={keyName => setValue({ ...value, keyName })} /><TextField label="Description" value={value.description ?? ''} onChange={description => setValue({ ...value, description })} /><label className="form-group"><span className="form-label">Value type</span><select className="form-input" value={value.valueType || 'TEXT'} onChange={event => setValue({ ...value, valueType: event.target.value as ValueType })}>{VALUE_TYPES.map(type => <option key={type}>{type}</option>)}</select></label><label className="form-group"><span className="form-label">Value</span><textarea className="form-input" rows={6} value={value.content ?? ''} onChange={event => setValue({ ...value, content: event.target.value })} /></label></div><div className="modal-footer"><button className="btn btn-ghost" onClick={onClose}>Cancel</button><button className="btn btn-primary" onClick={() => void save()}>Save</button></div></div></div>;
+}
+
+function TextField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="form-group"><span className="form-label">{label}</span><input className="form-input" value={value} onChange={event => onChange(event.target.value)} /></label>; }

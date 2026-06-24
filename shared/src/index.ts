@@ -31,7 +31,7 @@ export { getAxiosInstance, resetAxiosInstance, ApiError } from './api/intercepto
 // ---------------------------------------------------------------------------
 // Redux store factory + slices
 // ---------------------------------------------------------------------------
-export { createSharedStore } from './store';
+export { createSharedStore, getSharedStore } from './store';
 export type { SharedStore, SharedRootState, SharedSlices } from './store';
 
 // Cache slice actions (consumed by microfrontend module action files)
@@ -49,6 +49,10 @@ export type { CacheState } from './store/slices/cacheSlice';
 // Modal slice actions (consumed by microfrontend module action files)
 export { showModal, hideModal, clearModal } from './store/slices/modalSlice';
 export type { ModalState } from './store/slices/modalSlice';
+
+// Auth slice actions
+export { setToken, clearToken, login, googleLogin, createClient, logout } from './store/slices/authSlice';
+export type { AuthState, AuthResponse, RegistrationResponse } from './store/slices/authSlice';
 
 // ---------------------------------------------------------------------------
 // HTTP service
@@ -97,6 +101,9 @@ export { useLogger } from './hooks/useLogger';
 
 export { usePortalNavigation } from './hooks/usePortalNavigation';
 export type { UsePortalNavigationReturn } from './hooks/usePortalNavigation';
+
+export { PortalSidebar } from './components/PortalSidebar';
+export { ProfileMenu } from './components/ProfileMenu';
 
 // ---------------------------------------------------------------------------
 // Modal components

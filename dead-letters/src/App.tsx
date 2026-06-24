@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Skull, RefreshCw, Trash2, ChevronLeft, ChevronRight, Eye, X } from 'lucide-react';
+import { PortalSidebar } from '@notify-ui/shared';
 import { format, parseISO } from 'date-fns';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from './store';
@@ -20,7 +21,7 @@ const BASE =
     : configuredBase ?? defaultBase;
 
 const STATUS_COLOR: Record<DLQStatus, string> = {
-  PENDING: '#f59e0b', RETRYING: '#6366f1', DISCARDED: '#ef4444', RESOLVED: '#22c55e',
+  PENDING: '#f59e0b', RETRYING: '#facc15', DISCARDED: '#ef4444', RESOLVED: '#22c55e',
 };
 
 function Pager({ page, total, onChange }: { page: number; total: number; onChange: (p: number) => void }) {
@@ -85,7 +86,7 @@ function DLQTable() {
           { label: 'Total Entries', value: items.length, color: '#94a3b8' },
           { label: 'Pending', value: pending, color: '#f59e0b' },
           { label: 'Max Retries Hit', value: failed, color: '#ef4444' },
-          { label: 'Page', value: `${page + 1} / ${totalPages}`, color: '#6366f1' },
+          { label: 'Page', value: `${page + 1} / ${totalPages}`, color: '#facc15' },
         ].map(s => (
           <div key={s.label} className="card" style={{ padding: '14px 18px' }}>
             <div style={{ color: s.color, fontWeight: 700, fontSize: 22, fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
@@ -130,7 +131,7 @@ function DLQTable() {
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button className="btn-icon" title="View payload" onClick={() => setViewEntry(e)}><Eye size={13} /></button>
                         <button className="btn-icon" title="Retry" disabled={isRetrying(e.id) || e.status === 'DISCARDED' || e.status === 'RESOLVED'}
-                          style={{ color: isRetrying(e.id) ? '#475569' : '#6366f1' }}
+                          style={{ color: isRetrying(e.id) ? '#8d855f' : '#facc15' }}
                           onClick={() => dispatch(retryEntry(e.id))}>
                           <RefreshCw size={13} style={isRetrying(e.id) ? { animation: 'spin 1s linear infinite' } : {}} />
                         </button>
@@ -161,14 +162,7 @@ export default function App() {
   return (
     <BrowserRouter basename={BASE}>
       <div className="app-shell">
-        <aside className="sidebar">
-          <div className="sidebar-logo">
-            <Skull size={20} style={{ color: '#ef4444' }} />
-            <span style={{ background: 'linear-gradient(135deg, #ef4444, #f87171)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Dead Letters</span>
-          </div>
-          <span className="nav-section-label">Queue</span>
-          <div className="nav-item active"><Skull size={15} />DLQ</div>
-        </aside>
+        <PortalSidebar />
         <header className="topbar">
           <div><div className="topbar-title">Dead Letter Queue</div><div className="topbar-subtitle">Failed events awaiting retry or discard</div></div>
         </header>

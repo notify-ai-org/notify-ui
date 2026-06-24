@@ -22,6 +22,7 @@ import { getApiConfig } from './apiConfig';
 import { logger } from '../logger';
 import { handleApiError } from '../utils/errorHandler';
 import { redirectToForbidden } from '../navigation/portalNavigation';
+import { getSharedStore } from '../store';
 
 // ---------------------------------------------------------------------------
 // Public error shape
@@ -64,10 +65,16 @@ export function getAxiosInstance(): AxiosInstance {
       const { getAccessToken, enableRequestLogging } = getApiConfig();
 
       // Inject auth token
-      const token = getAccessToken?.();
+      const sharedStore = getSharedStore();
+      const token = sharedStore?.getState().auth.token ?? getAccessToken?.();
+      
       if (token) {
         config.headers = config.headers ?? {};
-        config.headers['Authorization'] = `Bearer ${token}`;
+        if (typeof config.headers.set === 'function') {
+          config.headers.set('Authorization', `Bearer ${token}`);
+        } else {
+          config.headers['Authorization'] = `Bearer ${token}`;
+        }
       }
 
       // Optional request logging
@@ -103,7 +110,7 @@ export function getAxiosInstance(): AxiosInstance {
       const isLoginPortal = typeof window !== 'undefined'
         && window.location.pathname.startsWith('/portals/login');
       if (apiError.status === 401 && !isLoginPortal) {
-        //redirectToLogin();
+        // redirectToLogin();
       } else if (apiError.status === 403) {
         redirectToForbidden();
       }

@@ -1,21 +1,19 @@
 /** Domain types for the Events portal. */
 
-export type EventType = 'DOMAIN' | 'SYSTEM' | 'SCHEDULED' | 'WEBHOOK';
-export type EventStatus = 'ACTIVE' | 'INACTIVE' | 'DEPRECATED';
+export type EventType = string;
+export type EventStatus = string;
 export type ScheduleStatus = 'PENDING' | 'RUNNING' | 'PAUSED' | 'FAILED' | 'COMPLETED';
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
 
 export interface RegisteredEvent {
   id: string;
-  key: string;
+  name: string;
   description: string;
   eventType: EventType;
   priority: number;
-  version: string;
-  status: EventStatus;
-  registeredAt: string;
-  ruleCount: number;
-  callbackCount: number;
+  scheduleIntent?: string;
+  preferredTimeWindow?: string;
+  createdAt?: string;
 }
 
 export interface ScheduleConfig {
