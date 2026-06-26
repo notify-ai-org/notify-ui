@@ -3,6 +3,20 @@ import { httpService } from '@notify-ui/shared';
 import type { Template, TemplateValidationResult } from '../../types';
 import type { Reducer } from '@reduxjs/toolkit';
 
+const TEMPLATES_API = '/api/admin/templates-schedules/templates';
+
+type BackendTemplate = {
+  id?: string;
+  channel?: string;
+  subject?: string | null;
+  template?: string | null;
+  eventType?: string | null;
+  eventName?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  validated?: boolean;
+};
+
 interface TemplatesState {
   items: Template[];
   selected: Template | null;
@@ -12,18 +26,59 @@ interface TemplatesState {
   validating: boolean;
 }
 
+function toTemplate(dto: BackendTemplate): Template {
+  const eventKey = dto.eventName || dto.eventType || '';
+  return {
+    id: dto.id ?? '',
+    name: eventKey || `${dto.channel ?? 'Template'} template`,
+    channel: (dto.channel ?? 'EMAIL') as Template['channel'],
+    status: dto.validated ? 'ACTIVE' : 'DRAFT',
+    subject: dto.subject ?? null,
+    body: dto.template ?? '',
+    variables: [],
+    version: 1,
+    eventKey,
+    createdAt: dto.createdAt ?? new Date(0).toISOString(),
+    updatedAt: dto.updatedAt ?? dto.createdAt ?? new Date(0).toISOString(),
+  };
+}
+
+function toBackendTemplate(template: Partial<Template>): BackendTemplate {
+  return {
+    id: template.id,
+    channel: template.channel,
+    subject: template.subject ?? '',
+    template: template.body ?? '',
+    eventName: template.eventKey,
+    eventType: template.eventKey,
+  };
+}
+
 export const fetchTemplates = createAsyncThunk('templates/fetch', () =>
-  httpService.get<Template[]>('/api/admin/templates', { cacheKey: 'templates:list', ttlMs: 30_000 }),
+  httpService
+    .get<BackendTemplate[]>(TEMPLATES_API, { cacheKey: 'templates:list', ttlMs: 30_000 })
+    .then(items => (items ?? []).map(toTemplate)),
 );
 
 export const fetchTemplate = createAsyncThunk('templates/fetchOne', (id: string) =>
-  httpService.get<Template>(`/api/admin/templates/${id}`),
+  httpService
+    .get<BackendTemplate[]>(TEMPLATES_API, { cacheKey: 'templates:list', ttlMs: 30_000 })
+    .then(items => (items ?? []).map(toTemplate).find(template => template.id === id) ?? null),
 );
 
 export const saveTemplate = createAsyncThunk('templates/save', ({ id, data }: { id: string | null; data: Partial<Template> }) =>
-  id
-    ? httpService.put<Template>(`/api/admin/templates/${id}`, { data, invalidateKey: 'templates:list', successModal: { title: 'Template saved', message: 'Changes have been persisted.', variant: 'success', autoCloseMs: 2000 } })
-    : httpService.post<Template>('/api/admin/templates', { data, invalidateKey: 'templates:list', successModal: { title: 'Template created', message: 'New template is ready.', variant: 'success', autoCloseMs: 2000 } }),
+  httpService
+    .post<BackendTemplate>(TEMPLATES_API, {
+      data: toBackendTemplate({ ...data, id: id ?? data.id }),
+      invalidateKey: 'templates:list',
+      successModal: {
+        title: id ? 'Template saved' : 'Template created',
+        message: id ? 'Changes have been persisted.' : 'New template is ready.',
+        variant: 'success',
+        autoCloseMs: 2000,
+      },
+    })
+    .then(response => ({ ...response, data: toTemplate(response.data) })),
 );
 
 export const deleteTemplate = createAsyncThunk('templates/delete', (id: string) =>
