@@ -23,7 +23,9 @@ type AuthMode = 'login' | 'register';
 
 // using AuthResponse and RegistrationResponse from shared
 
-
+function docsHref(): string {
+  return "https://notify-docs-sigma.vercel.app"
+}
 
 /* ── Animated Background ────────────────────────────────────────────────────── */
 
@@ -258,7 +260,17 @@ function LoginCard() {
 
       <div style={borderStyle}>
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 36, cursor: 'pointer' }}>
+        <a
+          href={docsHref()}
+          aria-label="Open Notify.ai docs"
+          style={{
+            display: 'block',
+            textAlign: 'center',
+            marginBottom: 36,
+            cursor: 'pointer',
+            textDecoration: 'none',
+          }}
+        >
           <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.025em', display: 'inline-block' }}>
             <span style={{ color: '#ffffff' }}>Notify</span>
             <span style={{ background: 'linear-gradient(135deg, #facc15 0%, #fde047 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>.ai</span>
@@ -266,7 +278,7 @@ function LoginCard() {
           <p style={{ marginTop: 6, color: '#64748b', fontSize: 14 }}>
             Admin console
           </p>
-        </div>
+        </a>
 
         {phase === 'success' && user && (
           <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 12, padding: '16px 20px', marginBottom: 20, textAlign: 'center', animation: 'fadeIn 0.3s ease' }}>

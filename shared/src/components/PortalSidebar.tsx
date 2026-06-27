@@ -19,6 +19,10 @@ function isActivePortal(portal: PortalName): boolean {
   return window.location.pathname.includes(`/portals/${portal}`);
 }
 
+function demoPageHref(): string {
+  return "https://notify-docs-sigma.vercel.app";
+}
+
 /** Shared shell navigation for the independently deployed portal bundles. */
 export function PortalSidebar(): React.JSX.Element {
   return (
@@ -41,7 +45,8 @@ export function PortalSidebar(): React.JSX.Element {
           --shadow-glow: 0 0 32px rgba(250, 204, 21, 0.08);
         }
         .portal-sidebar { background: #11110d; border-right-color: var(--border); }
-        .portal-sidebar__brand { display: flex; align-items: center; gap: 10px; padding: 0 20px 20px; border-bottom: 1px solid var(--border); }
+        .portal-sidebar__brand { display: flex; align-items: center; gap: 10px; padding: 0 20px 20px; border-bottom: 1px solid var(--border); text-decoration: none; }
+        .portal-sidebar__brand:hover .portal-sidebar__brand-name { color: #fef08a; }
         .portal-sidebar__mark { display: grid; place-items: center; width: 24px; height: 24px; background: var(--accent); color: #11110d; font-size: 15px; font-weight: 900; }
         .portal-sidebar__brand-name { color: var(--accent-light); font-size: 17px; font-weight: 800; letter-spacing: 0; }
         .portal-sidebar__section { padding: 18px 20px 7px; color: var(--text-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
@@ -59,12 +64,12 @@ export function PortalSidebar(): React.JSX.Element {
           .main-content { grid-column: 1; grid-row: 3; padding: 18px; }
         }
       `}</style>
-      <div className="portal-sidebar__brand" style={{ cursor: 'pointer' }}>
-        <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.025em' }}>
+      <a className="portal-sidebar__brand" href={demoPageHref()} aria-label="Open Notify.ai demo page">
+        <div className="portal-sidebar__brand-name" style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.025em' }}>
           <span style={{ color: '#ffffff' }}>Notify</span>
           <span style={{ background: 'linear-gradient(135deg, #facc15 0%, #fde047 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>.ai</span>
         </div>
-      </div>
+      </a>
       <span className="portal-sidebar__section">Portals</span>
       {portals.map(({ name, label }) => (
         <a
