@@ -98,9 +98,18 @@ function buildUserMessage(error: ApiError): string {
   if (isServerUnresponsive(error)) {
     return 'The server could not be reached. Your changes have been reverted. Please try again later.';
   }
+  if (hasUsefulServerMessage(error)) return error.message;
   if (error.status === 401) return 'Your session has expired. Please log in again.';
   if (error.status === 403) return 'You do not have permission to perform this action.';
   if (error.status === 404) return 'The requested resource was not found.';
   if (error.status >= 500) return 'A server error occurred. Please try again or contact support.';
-  return error.message || 'An unexpected error occurred.';
+  return 'An unexpected error occurred.';
+}
+
+function hasUsefulServerMessage(error: ApiError): boolean {
+  const message = error.message?.trim();
+  if (!message) return false;
+  if (message === 'Network Error') return false;
+  if (/^Request failed with status code \d+$/.test(message)) return false;
+  return true;
 }

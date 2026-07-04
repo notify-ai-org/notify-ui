@@ -1,13 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Provider } from 'react-redux';
 import { ClipboardList, Eye, RefreshCw, X } from 'lucide-react';
-import { PortalSidebar, ProfileMenu, httpService, initApiConfig } from '@notify-ui/shared';
+import { ModalProvider, PortalSidebar, ProfileMenu, createSharedStore, httpService, initApiConfig, registerErrorHandlerStore, registerHttpServiceStore } from '@notify-ui/shared';
 import '../../events/src/styles/global.css';
 
 type LogKind = 'capture' | 'notifications';
 type PagedResponse = { content: Array<Record<string, unknown>>; totalPages: number };
 
 initApiConfig({ baseURL: '', getAccessToken: () => document.cookie.match(/notify_access_token=([^;]+)/)?.[1] ?? null });
+const store = createSharedStore();
+registerHttpServiceStore(store);
+registerErrorHandlerStore(store);
 
 function LogsApp() {
   const [kind, setKind] = useState<LogKind>('capture');
@@ -45,4 +49,4 @@ function DetailBlock({ label, value }: { label: string; value: unknown }) {
 function isPlainObject(value: unknown): value is Record<string, unknown> { return !!value && typeof value === 'object' && !Array.isArray(value); }
 function displayValue(value: unknown) { if (value == null || value === '') return '—'; return typeof value === 'object' ? 'View details' : String(value); }
 
-createRoot(document.getElementById('root')!).render(<LogsApp />);
+createRoot(document.getElementById('root')!).render(<React.StrictMode><Provider store={store}><ModalProvider><LogsApp /></ModalProvider></Provider></React.StrictMode>);
