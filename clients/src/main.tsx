@@ -6,6 +6,7 @@ import '../../events/src/styles/global.css';
 
 type Client = { id: string; clientId: string; applicationName?: string; basePackage?: string; status?: string; expiresAt?: string; createdAt?: string };
 type Credentials = { clientId: string; tenantId: string; apiKey: string; apiSecret: string; expiresAt: string };
+type ClientsResponse = Client[] | { content?: Client[]; clients?: Client[]; items?: Client[] };
 
 initApiConfig({ baseURL: '', getAccessToken: () => document.cookie.match(/notify_access_token=([^;]+)/)?.[1] ?? null });
 
@@ -13,7 +14,10 @@ function ClientsApp() {
   const [clients, setClients] = useState<Client[]>([]);
   const [creating, setCreating] = useState(false);
   const [credentials, setCredentials] = useState<Credentials | null>(null);
-  const load = async () => setClients(await httpService.get<Client[]>('/api/admin/clients', { ttlMs: 0 }));
+  const load = async () => {
+    const response = await httpService.get<ClientsResponse>('/clients', { ttlMs: 0 });
+    setClients(Array.isArray(response) ? response : response.content ?? response.clients ?? response.items ?? []);
+  };
   useEffect(() => { void load(); }, []);
   return <div className="app-shell"><PortalSidebar /><header className="topbar"><div><div className="topbar-title">Clients</div><div className="topbar-subtitle">Applications registered for this tenant</div></div><ProfileMenu /></header><main className="main-content"><section className="card"><div className="card-header"><span className="card-title"><KeyRound size={15} /> Clients</span><div style={{ display: 'flex', gap: 8 }}><button className="btn-icon" title="Refresh clients" onClick={() => void load()}><RefreshCw size={14} /></button><button className="btn btn-primary" onClick={() => setCreating(true)}><Plus size={14} /> New client</button></div></div><ClientTable clients={clients} /></section></main>{creating && <ClientForm onClose={() => setCreating(false)} onCreated={async credential => { await load(); setCreating(false); setCredentials(credential); }} />}{credentials && <CredentialsDialog credentials={credentials} onClose={() => setCredentials(null)} />}</div>;
 }

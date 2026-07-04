@@ -222,14 +222,24 @@ function TemplateEditor({ isNew }: { isNew?: boolean }) {
         <div className="card">
           <div className="card-header"><span className="card-title"><Eye size={15} /> Preview</span></div>
           <div className="card-body">
-            <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#94a3b8', whiteSpace: 'pre-wrap', wordBreak: 'break-word' as const }}>
-              {form.body || <span style={{ color: '#334155' }}>Template body will appear here…</span>}
-            </pre>
+            <TemplatePreview body={form.body ?? ''} channel={form.channel} />
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+function TemplatePreview({ body, channel }: { body: string; channel?: TemplateChannel }) {
+  if (!body.trim()) return <div style={{ color: '#334155', fontSize: 12 }}>Template body will appear here…</div>;
+  if (channel === 'EMAIL' || looksLikeHtml(body)) {
+    return <iframe title="Template HTML preview" sandbox="" srcDoc={body} style={{ width: '100%', minHeight: 360, border: '1px solid rgba(255,255,255,0.08)', background: '#ffffff' }} />;
+  }
+  return <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#94a3b8', whiteSpace: 'pre-wrap', wordBreak: 'break-word' as const }}>{body}</pre>;
+}
+
+function looksLikeHtml(value: string) {
+  return /<!doctype html|<html[\s>]|<body[\s>]|<\/?[a-z][\s\S]*>/i.test(value);
 }
 
 /* ── App ── */

@@ -47,7 +47,6 @@ export function ProfileMenu(): React.JSX.Element {
             <div style={{ display: 'grid', gap: 9, color: '#d0c9a8', fontSize: 12 }}>
               <ProfileRow label="Email" value={profile.email} />
               <ProfileRow label="Tier" value={profile.tier} />
-              <ProfileRow label="Client ID" value={profile.clientId || 'Not assigned'} />
               <ProfileRow label="Tenant ID" value={profile.tenantId} />
             </div>
           ) : <div style={{ color: '#8d855f', fontSize: 12 }}>Profile details are unavailable.</div>}

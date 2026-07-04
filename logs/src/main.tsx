@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ClipboardList, RefreshCw } from 'lucide-react';
+import { ClipboardList, Eye, RefreshCw, X } from 'lucide-react';
 import { PortalSidebar, ProfileMenu, httpService, initApiConfig } from '@notify-ui/shared';
 import '../../events/src/styles/global.css';
 
@@ -30,8 +30,19 @@ function LogsApp() {
 }
 
 function LogTabs({ kind, onChange }: { kind: LogKind; onChange: (kind: LogKind) => void }) { return <div style={{ display: 'flex', gap: 8 }}><button className={`btn ${kind === 'capture' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => onChange('capture')}>Event Capture Logs</button><button className={`btn ${kind === 'notifications' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => onChange('notifications')}>Notification Logs</button></div>; }
-function LogTable({ rows, loading }: { rows: Array<Record<string, unknown>>; loading: boolean }) { const columns = useMemo(() => rows.length ? Object.keys(rows[0]).filter(key => !['payload', 'headers'].includes(key)).slice(0, 8) : [], [rows]); return <div style={{ overflowX: 'auto' }}><table className="data-table"><thead><tr>{columns.map(column => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id ?? index)}>{columns.map(column => <td key={column}>{displayValue(row[column])}</td>)}</tr>)}{!loading && !rows.length && <tr><td colSpan={Math.max(columns.length, 1)} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No log records found.</td></tr>}</tbody></table></div>; }
+function LogTable({ rows, loading }: { rows: Array<Record<string, unknown>>; loading: boolean }) {
+  const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
+  const columns = useMemo(() => rows.length ? Object.keys(rows[0]).filter(key => !['payload', 'headers'].includes(key)).slice(0, 8) : [], [rows]);
+  return <><div style={{ overflowX: 'auto' }}><table className="data-table"><thead><tr>{columns.map(column => <th key={column}>{column}</th>)}<th>Details</th></tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id ?? index)}>{columns.map(column => <td key={column}>{displayValue(row[column])}</td>)}<td><button className="btn-icon" title="View event details" onClick={() => setSelected(row)}><Eye size={13} /></button></td></tr>)}{!loading && !rows.length && <tr><td colSpan={Math.max(columns.length + 1, 1)} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No log records found.</td></tr>}</tbody></table></div>{selected && <LogDetailsModal row={selected} onClose={() => setSelected(null)} />}</>;
+}
 function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (page: number) => void }) { return <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: 14 }}><button className="btn btn-ghost" disabled={page === 0} onClick={() => onChange(page - 1)}>Previous</button><span style={{ padding: '7px 0', color: 'var(--text-muted)' }}>Page {page + 1}</span><button className="btn btn-ghost" disabled={page + 1 >= totalPages} onClick={() => onChange(page + 1)}>Next</button></div>; }
-function displayValue(value: unknown) { if (value == null) return '—'; return typeof value === 'object' ? JSON.stringify(value) : String(value); }
+function LogDetailsModal({ row, onClose }: { row: Record<string, unknown>; onClose: () => void }) {
+  return <div className="modal-overlay" onClick={onClose}><div className="modal-box" style={{ maxWidth: 760 }} onClick={event => event.stopPropagation()}><div className="modal-header"><span className="modal-title">Event details</span><button className="btn-icon" onClick={onClose}><X size={15} /></button></div><div className="modal-body" style={{ display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>{Object.entries(row).map(([key, value]) => <DetailBlock key={key} label={key} value={value} />)}</div><div className="modal-footer"><button className="btn btn-primary" onClick={onClose}>Done</button></div></div></div>;
+}
+function DetailBlock({ label, value }: { label: string; value: unknown }) {
+  return <div><div className="form-label">{label}</div>{isPlainObject(value) ? <div style={{ border: '1px solid var(--border)', padding: 12, background: 'rgba(255,255,255,0.02)', display: 'grid', gap: 8 }}>{Object.entries(value).map(([key, child]) => <DetailBlock key={key} label={key} value={child} />)}</div> : Array.isArray(value) ? <div style={{ display: 'grid', gap: 8 }}>{value.length ? value.map((item, index) => <DetailBlock key={index} label={`Item ${index + 1}`} value={item} />) : <span style={{ color: 'var(--text-muted)' }}>Empty</span>}</div> : <div style={{ color: '#d0c9a8', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>{displayValue(value)}</div>}</div>;
+}
+function isPlainObject(value: unknown): value is Record<string, unknown> { return !!value && typeof value === 'object' && !Array.isArray(value); }
+function displayValue(value: unknown) { if (value == null || value === '') return '—'; return typeof value === 'object' ? 'View details' : String(value); }
 
 createRoot(document.getElementById('root')!).render(<LogsApp />);

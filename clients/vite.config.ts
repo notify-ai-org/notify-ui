@@ -1,3 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-export default defineConfig({ plugins: [react()], base: process.env.VITE_PORTAL_BASE ?? './', server: { port: 5184, proxy: { '/api': { target: 'http://localhost:8080', changeOrigin: true } } } });
+export default defineConfig({
+  plugins: [react()],
+  base: process.env.VITE_PORTAL_BASE ?? './',
+  server: {
+    port: 5184,
+    proxy: {
+      '/api': { target: 'http://localhost:8080', changeOrigin: true },
+      '/client': { target: 'http://localhost:8080', changeOrigin: true },
+      '/clients': { target: 'http://localhost:8080', changeOrigin: true },
+    },
+  },
+});
