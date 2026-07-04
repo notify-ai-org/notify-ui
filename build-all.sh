@@ -45,6 +45,7 @@ PORTALS=(
 # ── Flags ─────────────────────────────────────────────────────────────────────
 SKIP_SHARED=false
 SELECTED_PORTALS=()
+SELECTED_PORTAL_COUNT=0
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -52,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     --portal)
       [[ $# -ge 2 ]] || { echo "--portal requires a portal name" >&2; exit 1; }
       SELECTED_PORTALS+=("$2")
+      SELECTED_PORTAL_COUNT=$((SELECTED_PORTAL_COUNT + 1))
       shift 2
       ;;
     --*)
@@ -60,6 +62,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       SELECTED_PORTALS+=("$1")
+      SELECTED_PORTAL_COUNT=$((SELECTED_PORTAL_COUNT + 1))
       shift
       ;;
   esac
@@ -80,13 +83,15 @@ is_known_portal() {
   return 1
 }
 
-for portal in "${SELECTED_PORTALS[@]}"; do
-  if ! is_known_portal "$portal"; then
-    err "Unknown portal: $portal"
-    err "Available portals: ${PORTALS[*]}"
-    exit 1
-  fi
-done
+if [[ "$SELECTED_PORTAL_COUNT" -gt 0 ]]; then
+  for portal in "${SELECTED_PORTALS[@]}"; do
+    if ! is_known_portal "$portal"; then
+      err "Unknown portal: $portal"
+      err "Available portals: ${PORTALS[*]}"
+      exit 1
+    fi
+  done
+fi
 
 # ── 1. Build shared library ───────────────────────────────────────────────────
 if [[ "$SKIP_SHARED" == "false" ]]; then
@@ -121,7 +126,7 @@ build_portal() {
   ok "Portal '$name'  →  $STATIC_OUT/$name"
 }
 
-if [[ ${#SELECTED_PORTALS[@]} -gt 0 ]]; then
+if [[ "$SELECTED_PORTAL_COUNT" -gt 0 ]]; then
   # Positional portal names select a focused build. No names means build all.
   for portal in "${SELECTED_PORTALS[@]}"; do
     build_portal "$portal"
@@ -138,13 +143,15 @@ else
   done
 
   failed=()
+  failed_count=0
   for i in "${!portal_pids[@]}"; do
     if ! wait "${portal_pids[$i]}"; then
       failed+=("${portal_names[$i]}")
+      failed_count=$((failed_count + 1))
     fi
   done
 
-  if [[ ${#failed[@]} -gt 0 ]]; then
+  if [[ "$failed_count" -gt 0 ]]; then
     err "The following portal builds FAILED: ${failed[*]}"
     exit 1
   fi
