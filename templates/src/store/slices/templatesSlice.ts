@@ -82,7 +82,7 @@ export const saveTemplate = createAsyncThunk('templates/save', ({ id, data }: { 
 );
 
 export const deleteTemplate = createAsyncThunk('templates/delete', (id: string) =>
-  httpService.delete<void>(`/api/admin/templates/${id}`, { invalidateKey: 'templates:list' }),
+  httpService.delete<void>(`${TEMPLATES_API}/${id}`, { invalidateKey: 'templates:list' }),
 );
 
 export const validateTemplate = createAsyncThunk('templates/validate', (body: string) =>
