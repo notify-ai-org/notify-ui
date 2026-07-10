@@ -37,8 +37,11 @@ body {
   font-size: 13px;
   letter-spacing: 0.02em;
 }
-.dev-logo-glyph {
-  font-size: 16px;
+.dev-logo-mark {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
 }
 .dev-badge {
   padding: 2px 8px;
@@ -160,6 +163,12 @@ body {
   color: #334155;
   text-align: center;
   padding: 40px;
+}
+.dev-welcome-logo {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 2px;
 }
 .dev-welcome h2 { font-size: 18px; font-weight: 600; color: #475569; }
 .dev-welcome p { font-size: 13px; line-height: 1.6; max-width: 320px; }

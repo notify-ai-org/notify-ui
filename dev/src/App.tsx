@@ -50,6 +50,23 @@ const GROUPS: { label: string; portals: PortalDef[] }[] = [
 
 const ALL_PORTALS = GROUPS.flatMap(g => g.portals);
 
+function NotifyLogoMark({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 1024 1024" role="img" aria-label="Notify.ai">
+      <circle cx="512" cy="548" r="372" fill="#050505" />
+      <path
+        d="M512 338c-31.48 0-57 25.52-57 57v96H359c-31.48 0-57 25.52-57 57s25.52 57 57 57h96v96c0 31.48 25.52 57 57 57s57-25.52 57-57v-96h96c31.48 0 57-25.52 57-57s-25.52-57-57-57h-96v-96c0-31.48-25.52-57-57-57Z"
+        fill="#c9c9c9"
+      />
+      <circle cx="772" cy="300" r="128" fill="#e8ad08" />
+      <path
+        d="M778.72 374h-45.6v-94.56c-15.52 10.4-31.52 16.96-48 19.68v-39.84c12.96-2.88 25.2-7.68 36.72-14.4 11.68-6.88 20.56-15.52 26.64-25.92h30.24V374Z"
+        fill="#050505"
+      />
+    </svg>
+  );
+}
+
 /* ── Loading fallback ── */
 function Spinner() {
   return (
@@ -64,7 +81,7 @@ function Spinner() {
 function Welcome() {
   return (
     <div className="dev-welcome">
-      <div style={{ fontSize: 48, marginBottom: 8 }}>⚡</div>
+      <NotifyLogoMark className="dev-welcome-logo" />
       <h2>Notify.ai Dev Shell</h2>
       <p>Select a portal from the sidebar to get started, or jump straight in:</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 16 }}>
@@ -85,7 +102,7 @@ function TopBar() {
   return (
     <header className="dev-topbar">
       <div className="dev-logo">
-        <span className="dev-logo-glyph">⚡</span>
+        <NotifyLogoMark className="dev-logo-mark" />
         <span style={{ background: 'linear-gradient(135deg,#eab308,#f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Notify.ai</span>
       </div>
       <span className="dev-badge">DEV</span>

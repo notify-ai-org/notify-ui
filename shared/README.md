@@ -1,4 +1,8 @@
-# @notify-ui/shared
+<p align="center">
+  <img src="../assets/notify-ai-logo.svg" alt="Notify.ai" width="96" />
+</p>
+
+<h1 align="center">@notify-ui/shared</h1>
 
 Shared React library for Notify-UI microfrontends.
 
