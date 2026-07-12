@@ -1,15 +1,28 @@
-export type DLQStatus = 'PENDING' | 'RETRYING' | 'DISCARDED' | 'RESOLVED';
+export type DLQStatus = 'PENDING' | 'REPLAYED' | 'DISCARDED';
 
 export interface DeadLetterEntry {
-  id: string;
-  eventKey: string;
-  tenantId: string;
-  errorMessage: string;
-  errorCode: string;
-  retryCount: number;
-  maxRetries: number;
-  status: DLQStatus;
-  failedAt: string;
-  lastRetryAt: string | null;
-  payload: Record<string, unknown>;
+  id: number;
+  notificationId: string;
+  channel: string;
+  target: string | null;
+  originalJobPayload: string;
+  resolvedVocabularyPayload: string | null;
+  renderedContent: string | null;
+  failureCategory: string;
+  failureReasonCode: string;
+  failureMessage: string | null;
+  exceptionClass: string | null;
+  stackTrace: string | null;
+  attemptCount: number;
+  firstAttemptAt: string | null;
+  lastAttemptAt: string | null;
+  workerId: string | null;
+  dispatcherInstanceId: string | null;
+  replayStatus: DLQStatus;
+  replayedAt: string | null;
+  replayedBy: string | null;
+  discardedAt: string | null;
+  discardedBy: string | null;
+  discardReason: string | null;
+  createdAt: string;
 }
