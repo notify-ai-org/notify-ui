@@ -35,7 +35,6 @@ PORTALS=(
   logs
   clients
   templates
-  memory
   domain
   vocab-rules
   settings

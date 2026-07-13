@@ -5,7 +5,6 @@ export type PortalName =
   | 'logs'
   | 'clients'
   | 'templates'
-  | 'memory'
   | 'domain'
   | 'vocab-rules'
   | 'settings'

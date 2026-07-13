@@ -7,7 +7,6 @@ const portals: Array<{ name: PortalName; label: string }> = [
   { name: 'logs', label: 'Logs' },
   { name: 'clients', label: 'Clients' },
   { name: 'templates', label: 'Templates' },
-  { name: 'memory', label: 'Memory' },
   { name: 'domain', label: 'Domain' },
   { name: 'vocab-rules', label: 'Vocab Rules' },
   { name: 'settings', label: 'Settings' },

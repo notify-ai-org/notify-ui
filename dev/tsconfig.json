@@ -22,6 +22,6 @@
     }
   },
   "include": ["src", "../shared/src", "../home/src", "../sdk-guide/src",
-    "../login/src", "../events/src", "../templates/src", "../memory/src",
+    "../login/src", "../events/src", "../templates/src",
     "../domain/src", "../vocab-rules/src", "../settings/src", "../dead-letters/src"]
 }

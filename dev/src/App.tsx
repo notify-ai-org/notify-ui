@@ -5,7 +5,6 @@ import { portalHref } from './portalNavigation';
 const LoginApp = lazy(() => import('../../login/src/App'));
 //const EventsApp     = lazy(() => import('../../events/src/App'));
 const TemplatesApp = lazy(() => import('../../templates/src/App'));
-const MemoryApp = lazy(() => import('../../memory/src/App'));
 const DomainApp = lazy(() => import('../../domain/src/App'));
 const VocabApp = lazy(() => import('../../vocab-rules/src/App'));
 const SettingsApp = lazy(() => import('../../settings/src/App'));
@@ -39,7 +38,6 @@ const GROUPS: { label: string; portals: PortalDef[] }[] = [
     portals: [
       { key: 'events', label: 'Events', emoji: '📡', basePath: '/portals/events', accent: '#6366f1' },
       { key: 'templates', label: 'Templates', emoji: '📄', basePath: '/portals/templates', accent: '#06b6d4' },
-      { key: 'memory', label: 'Memory', emoji: '🧠', basePath: '/portals/memory', accent: '#a855f7' },
       { key: 'domain', label: 'Domain', emoji: '🌐', basePath: '/portals/domain', accent: '#f97316' },
       { key: 'vocab-rules', label: 'Vocab Rules', emoji: '📚', basePath: '/portals/vocab-rules', accent: '#3b82f6' },
       { key: 'settings', label: 'Settings', emoji: '⚙️', basePath: '/portals/settings', accent: '#64748b' },
@@ -152,7 +150,6 @@ function Shell() {
             <Route path="/portals/login/*" element={<LoginApp />} />
 
             <Route path="/portals/templates/*" element={<TemplatesApp />} />
-            <Route path="/portals/memory/*" element={<MemoryApp />} />
             <Route path="/portals/domain/*" element={<DomainApp />} />
             <Route path="/portals/vocab-rules/*" element={<VocabApp />} />
             <Route path="/portals/settings/*" element={<SettingsApp />} />
