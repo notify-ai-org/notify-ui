@@ -2,7 +2,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   RegisteredEvent, ScheduledEvent, CaptureLogEntry,
-  NotificationLogEntry, EventMetrics, ScheduleConfig,
+  NotificationLogEntry, ScheduleConfig,
 } from '../../types';
 import { httpService } from '@notify-ui/shared';
 
@@ -187,36 +187,9 @@ const notificationLogSlice = createSlice({
 });
 export const { setPage: setNotifLogPage } = notificationLogSlice.actions;
 
-// ─── Metrics ─────────────────────────────────────────────────────────────────
-
-interface MetricsState {
-  data: EventMetrics | null;
-  loading: boolean;
-}
-
-export const fetchMetrics = createAsyncThunk(
-  'metrics/fetch',
-  () => httpService.get<EventMetrics>('/api/admin/events/metrics', {
-    cacheKey: 'events:metrics',
-    ttlMs: 60_000,
-  }),
-);
-
-const metricsSlice = createSlice({
-  name: 'metrics',
-  initialState: { data: null, loading: false } as MetricsState,
-  reducers: {},
-  extraReducers: (b) => {
-    b.addCase(fetchMetrics.pending, (s) => { s.loading = true; });
-    b.addCase(fetchMetrics.fulfilled, (s, a) => { s.loading = false; s.data = a.payload ?? null; });
-    b.addCase(fetchMetrics.rejected, (s) => { s.loading = false; });
-  },
-});
-
 export const reducers = {
   registeredEvents: registeredEventsSlice.reducer,
   scheduledEvents: scheduledEventsSlice.reducer,
   captureLog: captureLogSlice.reducer,
   notificationLog: notificationLogSlice.reducer,
-  metrics: metricsSlice.reducer,
 };
