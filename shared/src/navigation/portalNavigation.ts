@@ -3,6 +3,7 @@ export type PortalName =
   | 'events'
   | 'schedules'
   | 'logs'
+  | 'agents'
   | 'clients'
   | 'templates'
   | 'domain'
