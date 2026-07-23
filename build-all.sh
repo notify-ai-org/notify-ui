@@ -27,8 +27,6 @@ STATIC_OUT="$ROOT_DIR/access/src/main/resources/static/portals"
 # ── Portal registry ───────────────────────────────────────────────────────────
 # Add a new portal name here when a new module directory is created.
 PORTALS=(
-  home
-  sdk-guide
   login
   events
   schedules
@@ -37,6 +35,8 @@ PORTALS=(
   templates
   domain
   vocab-rules
+  memory
+  agents
   settings
   dead-letters
 )

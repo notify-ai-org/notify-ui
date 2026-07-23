@@ -64,13 +64,34 @@ function TemplateList() {
         ))}
       </div>
       <div style={{ overflowX: 'auto' }}>
-        {loading ? <div style={{ padding: 24 }}>{[...Array(4)].map((_, i) => <div key={i} className="skeleton" style={{ height: 40, marginBottom: 8, borderRadius: 6 }} />)}</div> : (
+        {loading ? (
+          <div style={{ padding: 24 }}>
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="skeleton"
+                style={{ height: 40, marginBottom: 8, borderRadius: 6 }}
+              />
+            ))}
+          </div>
+        ) : (
           <table className="data-table">
             <thead><tr><th>Event</th><th>Channel</th><th>Subject</th><th>Description</th><th>Created At</th><th>Actions</th></tr></thead>
             <tbody>
               {filtered.map((t: Template) => (
                 <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/edit/${t.id}`)}>
-                  <td><button className="btn btn-ghost" style={{ padding: 0, border: 0, color: '#fde047' }} onClick={e => { e.stopPropagation(); setEventInfo(t); }}>{t.eventKey}</button></td>
+                  <td>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: 0, border: 0, color: '#fde047' }}
+                      onClick={event => {
+                        event.stopPropagation();
+                        setEventInfo(t);
+                      }}
+                    >
+                      {t.eventKey}
+                    </button>
+                  </td>
                   <td><span className="badge" style={{ background: `${CHANNEL_COLORS[t.channel]}22`, color: CHANNEL_COLORS[t.channel] }}>{t.channel}</span></td>
                   <td>{t.subject || '—'}</td>
                   <td style={{ maxWidth: 250, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#94a3b8' }}>{t.body || t.name}</td>
@@ -161,7 +182,14 @@ function TemplateEditor({ isNew }: { isNew?: boolean }) {
           </Field>
           <Field label="Event Key"><input className="form-input" value={form.eventKey ?? ''} onChange={e => set('eventKey', e.target.value)} placeholder="order.placed" /></Field>
           {form.channel === 'EMAIL' && (
-            <Field label="Subject"><input className="form-input" value={form.subject ?? ''} onChange={e => set('subject', e.target.value)} placeholder="Order {{orderId}} confirmed" /></Field>
+            <Field label="Subject">
+              <input
+                className="form-input"
+                value={form.subject ?? ''}
+                onChange={event => set('subject', event.target.value)}
+                placeholder="Order {{orderId}} confirmed"
+              />
+            </Field>
           )}
           <Field label="Status">
             <select className="form-input" value={form.status} onChange={e => set('status', e.target.value as any)}>
@@ -233,7 +261,19 @@ function TemplateEditor({ isNew }: { isNew?: boolean }) {
 function TemplatePreview({ body, channel }: { body: string; channel?: TemplateChannel }) {
   if (!body.trim()) return <div style={{ color: '#334155', fontSize: 12 }}>Template body will appear here…</div>;
   if (channel === 'EMAIL' || looksLikeHtml(body)) {
-    return <iframe title="Template HTML preview" sandbox="" srcDoc={body} style={{ width: '100%', minHeight: 360, border: '1px solid rgba(255,255,255,0.08)', background: '#ffffff' }} />;
+    return (
+      <iframe
+        title="Template HTML preview"
+        sandbox=""
+        srcDoc={body}
+        style={{
+          width: '100%',
+          minHeight: 360,
+          border: '1px solid rgba(255,255,255,0.08)',
+          background: '#ffffff',
+        }}
+      />
+    );
   }
   return <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#94a3b8', whiteSpace: 'pre-wrap', wordBreak: 'break-word' as const }}>{body}</pre>;
 }

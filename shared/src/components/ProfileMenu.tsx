@@ -41,7 +41,19 @@ export function ProfileMenu(): React.JSX.Element {
         <UserRound size={17} />
       </button>
       {open && (
-        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', zIndex: 30, width: 270, background: '#11110d', border: '1px solid rgba(250,204,21,.55)', boxShadow: '0 16px 36px rgba(0,0,0,.42)', padding: 14 }}>
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 'calc(100% + 8px)',
+            zIndex: 30,
+            width: 270,
+            background: '#11110d',
+            border: '1px solid rgba(250,204,21,.55)',
+            boxShadow: '0 16px 36px rgba(0,0,0,.42)',
+            padding: 14,
+          }}
+        >
           <div style={{ color: '#fde047', fontWeight: 700, marginBottom: 12 }}>Account</div>
           {profile ? (
             <div style={{ display: 'grid', gap: 9, color: '#d0c9a8', fontSize: 12 }}>
@@ -50,7 +62,17 @@ export function ProfileMenu(): React.JSX.Element {
               <ProfileRow label="Tenant ID" value={profile.tenantId} />
             </div>
           ) : <div style={{ color: '#8d855f', fontSize: 12 }}>Profile details are unavailable.</div>}
-          <button className="btn btn-ghost" style={{ width: '100%', marginTop: 16, justifyContent: 'center', color: '#fde047', borderColor: 'rgba(250,204,21,.6)' }} onClick={() => void logout()}>
+          <button
+            className="btn btn-ghost"
+            style={{
+              width: '100%',
+              marginTop: 16,
+              justifyContent: 'center',
+              color: '#fde047',
+              borderColor: 'rgba(250,204,21,.6)',
+            }}
+            onClick={() => void logout()}
+          >
             <LogOut size={14} /> Logout
           </button>
         </div>

@@ -67,7 +67,15 @@ export function PortalSidebar(): React.JSX.Element {
         .notify-logo-mark { display: block; width: 34px; height: 34px; flex: 0 0 auto; }
         .portal-sidebar__brand-name { color: var(--accent-light); font-size: 17px; font-weight: 800; letter-spacing: 0; }
         .portal-sidebar__section { padding: 18px 20px 7px; color: var(--text-muted); font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-        .portal-sidebar__link { display: block; padding: 9px 20px; border-left: 2px solid transparent; color: var(--text-secondary); font-size: 13px; font-weight: 600; text-decoration: none; }
+        .portal-sidebar__link {
+          display: block;
+          padding: 9px 20px;
+          border-left: 2px solid transparent;
+          color: var(--text-secondary);
+          font-size: 13px;
+          font-weight: 600;
+          text-decoration: none;
+        }
         .portal-sidebar__link:hover { background: var(--bg-hover); border-left-color: var(--border-accent); color: var(--text-primary); }
         .portal-sidebar__link--active { background: var(--accent-glow); border-left-color: var(--accent); color: var(--accent-light); }
         .topbar-title { display: inline-flex; align-items: center; gap: 9px; }

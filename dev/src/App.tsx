@@ -84,8 +84,21 @@ function Welcome() {
       <p>Select a portal from the sidebar to get started, or jump straight in:</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 16 }}>
         {ALL_PORTALS.map(p => (
-          <button key={p.key} onClick={() => { window.location.href = portalHref(p.key); }}
-            style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${p.accent}44`, background: `${p.accent}11`, color: p.accent, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+          <button
+            key={p.key}
+            onClick={() => { window.location.href = portalHref(p.key); }}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 8,
+              border: `1px solid ${p.accent}44`,
+              background: `${p.accent}11`,
+              color: p.accent,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif',
+            }}
+          >
             {p.emoji} {p.label}
           </button>
         ))}

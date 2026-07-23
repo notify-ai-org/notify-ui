@@ -1,21 +1,83 @@
-import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import type { Reducer } from '@reduxjs/toolkit';
 import { httpService } from '@notify-ui/shared';
 import type { VocabRule } from '../../types';
-import type { Reducer } from '@reduxjs/toolkit';
 
-interface State { items: VocabRule[]; loading: boolean; saving: boolean; }
-export const fetchRules = createAsyncThunk('vocab/fetch', () => httpService.get<VocabRule[]>('/api/admin/vocab-rules', { cacheKey: 'vocab:rules', ttlMs: 30_000 }));
-export const saveRule = createAsyncThunk('vocab/save', ({ id, data }: { id: string | null; data: Partial<VocabRule> }) =>
-  id ? httpService.put<VocabRule>(`/api/admin/vocab-rules/${id}`, { data, invalidateKey: 'vocab:rules', successModal: { title: 'Rule saved', message: '', variant: 'success', autoCloseMs: 2000 } })
-     : httpService.post<VocabRule>('/api/admin/vocab-rules', { data, invalidateKey: 'vocab:rules', successModal: { title: 'Rule created', message: '', variant: 'success', autoCloseMs: 2000 } }));
-export const deleteRule = createAsyncThunk('vocab/delete', (id: string) => httpService.delete<void>(`/api/admin/vocab-rules/${id}`, { invalidateKey: 'vocab:rules' }));
-const slice = createSlice({ name: 'vocab', initialState: { items: [], loading: false, saving: false } as State, reducers: {}, extraReducers: b => {
-  b.addCase(fetchRules.pending, s => { s.loading = true; });
-  b.addCase(fetchRules.fulfilled, (s, a) => { s.loading = false; s.items = a.payload ?? []; });
-  b.addCase(fetchRules.rejected, s => { s.loading = false; });
-  b.addCase(deleteRule.fulfilled, (s, a) => { s.items = s.items.filter(r => r.id !== a.meta.arg); });
-  b.addCase(saveRule.pending, s => { s.saving = true; });
-  b.addCase(saveRule.fulfilled, s => { s.saving = false; });
-  b.addCase(saveRule.rejected, s => { s.saving = false; });
-}});
+interface State {
+  items: VocabRule[];
+  loading: boolean;
+  saving: boolean;
+}
+
+const initialState: State = {
+  items: [],
+  loading: false,
+  saving: false,
+};
+
+export const fetchRules = createAsyncThunk(
+  'vocab/fetch',
+  () => httpService.get<VocabRule[]>('/api/admin/vocab-rules', {
+    cacheKey: 'vocab:rules',
+    ttlMs: 30_000,
+  }),
+);
+
+export const saveRule = createAsyncThunk(
+  'vocab/save',
+  ({ id, data }: { id: string | null; data: Partial<VocabRule> }) => {
+    const options = {
+      data,
+      invalidateKey: 'vocab:rules',
+      successModal: {
+        title: id ? 'Rule saved' : 'Rule created',
+        message: '',
+        variant: 'success' as const,
+        autoCloseMs: 2000,
+      },
+    };
+
+    return id
+      ? httpService.put<VocabRule>(`/api/admin/vocab-rules/${id}`, options)
+      : httpService.post<VocabRule>('/api/admin/vocab-rules', options);
+  },
+);
+
+export const deleteRule = createAsyncThunk(
+  'vocab/delete',
+  (id: string) => httpService.delete<void>(`/api/admin/vocab-rules/${id}`, {
+    invalidateKey: 'vocab:rules',
+  }),
+);
+
+const slice = createSlice({
+  name: 'vocab',
+  initialState,
+  reducers: {},
+  extraReducers: builder => {
+    builder.addCase(fetchRules.pending, state => {
+      state.loading = true;
+    });
+    builder.addCase(fetchRules.fulfilled, (state, action) => {
+      state.loading = false;
+      state.items = action.payload ?? [];
+    });
+    builder.addCase(fetchRules.rejected, state => {
+      state.loading = false;
+    });
+    builder.addCase(deleteRule.fulfilled, (state, action) => {
+      state.items = state.items.filter(rule => rule.id !== action.meta.arg);
+    });
+    builder.addCase(saveRule.pending, state => {
+      state.saving = true;
+    });
+    builder.addCase(saveRule.fulfilled, state => {
+      state.saving = false;
+    });
+    builder.addCase(saveRule.rejected, state => {
+      state.saving = false;
+    });
+  },
+});
+
 export const reducers = { vocab: slice.reducer as Reducer<unknown> };

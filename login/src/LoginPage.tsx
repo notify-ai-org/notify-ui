@@ -281,7 +281,17 @@ function LoginCard() {
         </a>
 
         {phase === 'success' && user && (
-          <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 12, padding: '16px 20px', marginBottom: 20, textAlign: 'center', animation: 'fadeIn 0.3s ease' }}>
+          <div
+            style={{
+              background: 'rgba(34,197,94,0.1)',
+              border: '1px solid rgba(34,197,94,0.25)',
+              borderRadius: 12,
+              padding: '16px 20px',
+              marginBottom: 20,
+              textAlign: 'center',
+              animation: 'fadeIn 0.3s ease',
+            }}
+          >
             <div style={{ fontSize: 22, marginBottom: 8 }}>✓</div>
             <div style={{ color: '#22c55e', fontWeight: 600 }}>Welcome, {user.name}!</div>
             <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>Redirecting…</div>
@@ -306,10 +316,39 @@ function LoginCard() {
             </div>
 
             <form onSubmit={handleCredentials} style={{ display: 'grid', gap: 12 }}>
-              {mode === 'register' && <input required value={name} onChange={event => setName(event.target.value)} placeholder="Full name" autoComplete="name" style={fieldStyle} />}
+              {mode === 'register' && (
+                <input
+                  required
+                  value={name}
+                  onChange={event => setName(event.target.value)}
+                  placeholder="Full name"
+                  autoComplete="name"
+                  style={fieldStyle}
+                />
+              )}
               <input required type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="Email address" autoComplete="email" style={fieldStyle} />
-              <input required minLength={8} type="password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} style={fieldStyle} />
-              {mode === 'register' && <input required minLength={8} type="password" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} placeholder="Confirm password" autoComplete="new-password" style={fieldStyle} />}
+              <input
+                required
+                minLength={8}
+                type="password"
+                value={password}
+                onChange={event => setPassword(event.target.value)}
+                placeholder="Password"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                style={fieldStyle}
+              />
+              {mode === 'register' && (
+                <input
+                  required
+                  minLength={8}
+                  type="password"
+                  value={confirmPassword}
+                  onChange={event => setConfirmPassword(event.target.value)}
+                  placeholder="Confirm password"
+                  autoComplete="new-password"
+                  style={fieldStyle}
+                />
+              )}
               <button disabled={loading} type="submit" style={borderButtonStyle}>
                 {mode === 'login' ? 'Sign in' : 'Create account'}
               </button>
