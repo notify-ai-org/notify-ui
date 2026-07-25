@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { Activity, Bot, Braces, Clock3, RefreshCw } from 'lucide-react';
+import { Activity, Bot, Braces, Clock3, RefreshCw, Save, Settings2 } from 'lucide-react';
 import {
   ModalProvider,
   PortalSidebar,
@@ -33,6 +33,29 @@ type AgentSnapshot = {
   agentStateJson?: string;
 };
 
+type AgentConfig = {
+  id: string;
+  name?: string;
+  description?: string;
+  resourcePath?: string;
+  inputSchemaTitle?: string;
+  inputSchemaDescription?: string;
+  inputClass?: string;
+  outputSchemaTitle?: string;
+  outputSchemaDescription?: string;
+  outputClass?: string;
+  outputType?: string;
+  tools?: string[];
+  feedbackInstructions?: string[];
+  outputKey?: string;
+  model?: string;
+  instances?: number;
+  maxLlmCalls?: number;
+  bypassStateInjection?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 type SnapshotCounts = {
   running: number;
   ready: number;
@@ -54,22 +77,38 @@ function AgentsApp() {
     content: [],
     totalPages: 1,
   });
+  const [configs, setConfigs] = useState<PageResponse<AgentConfig>>({
+    content: [],
+    totalPages: 1,
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
+  const [editingConfig, setEditingConfig] = useState<AgentConfig | null>(null);
   const [loading, setLoading] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
   const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const response = await httpService.get<PageResponse<AgentSnapshot>>('/api/admin/data/agent-snapshots', {
-        params: { page, size: 30, sort: 'lastActivityAt,desc' },
-        ttlMs: 0,
-        forceRefresh: true,
-      });
+      const [snapshotResponse, configResponse] = await Promise.all([
+        httpService.get<PageResponse<AgentSnapshot>>('/api/admin/data/agent-snapshots', {
+          params: { page, size: 30, sort: 'lastActivityAt,desc' },
+          ttlMs: 0,
+          forceRefresh: true,
+        }),
+        httpService.get<PageResponse<AgentConfig>>('/api/admin/data/agent-configs', {
+          params: { page: 0, size: 100, sort: 'id,asc' },
+          ttlMs: 0,
+          forceRefresh: true,
+        }),
+      ]);
 
-      setSnapshots(response);
+      setSnapshots(snapshotResponse);
+      setConfigs(configResponse);
       setLastLoadedAt(new Date());
-      setSelectedId(current => current ?? getSnapshotId(response.content[0]) ?? null);
+      setSelectedId(current => current ?? getSnapshotId(snapshotResponse.content[0]) ?? null);
+      setSelectedConfigId(current => current ?? configResponse.content[0]?.id ?? null);
     } finally {
       setLoading(false);
     }
@@ -86,6 +125,34 @@ function AgentsApp() {
   }, [selectedId, snapshots.content]);
 
   const counts = useMemo(() => summarize(snapshots.content), [snapshots.content]);
+  const selectedConfig = useMemo(() => {
+    return configs.content.find(config => config.id === selectedConfigId)
+      ?? configs.content[0]
+      ?? null;
+  }, [configs.content, selectedConfigId]);
+
+  useEffect(() => {
+    setEditingConfig(selectedConfig ? cloneConfig(selectedConfig) : null);
+  }, [selectedConfig]);
+
+  const saveConfig = async () => {
+    if (!editingConfig?.id) return;
+
+    setSavingConfig(true);
+    try {
+      const saved = await httpService.put<AgentConfig>(
+        `/api/admin/data/agent-configs/${encodeURIComponent(editingConfig.id)}`,
+        normalizeConfig(editingConfig),
+      );
+      setConfigs(current => ({
+        ...current,
+        content: current.content.map(config => config.id === saved.id ? saved : config),
+      }));
+      setEditingConfig(cloneConfig(saved));
+    } finally {
+      setSavingConfig(false);
+    }
+  };
 
   return (
     <div className="app-shell">
@@ -150,6 +217,48 @@ function AgentsApp() {
               {selected && <StageBadge stage={selected.currentStage} />}
             </div>
             {selected ? <AgentDetails snapshot={selected} /> : <EmptyState loading={loading} />}
+          </div>
+        </section>
+
+        <section className="agent-layout agent-config-layout">
+          <div className="card agent-list-card">
+            <div className="card-header">
+              <span className="card-title">
+                <Settings2 size={15} /> Agent configs
+              </span>
+              <button className="btn btn-ghost" onClick={() => void load()} disabled={loading}>
+                Refresh
+              </button>
+            </div>
+            <AgentConfigList
+              configs={configs.content}
+              selectedId={selectedConfigId}
+              onSelect={setSelectedConfigId}
+              loading={loading}
+            />
+          </div>
+
+          <div className="card agent-detail-card">
+            <div className="card-header">
+              <span className="card-title">
+                <Settings2 size={15} /> Configuration
+              </span>
+              <button
+                className="btn btn-primary"
+                onClick={() => void saveConfig()}
+                disabled={!editingConfig || savingConfig}
+              >
+                <Save size={14} /> {savingConfig ? 'Saving' : 'Save'}
+              </button>
+            </div>
+            {editingConfig ? (
+              <AgentConfigEditor
+                config={editingConfig}
+                onChange={setEditingConfig}
+              />
+            ) : (
+              <EmptyState loading={loading} />
+            )}
           </div>
         </section>
       </main>
@@ -242,6 +351,214 @@ function AgentListRow({
       </span>
       <StageBadge stage={snapshot.currentStage} />
     </button>
+  );
+}
+
+function AgentConfigList({
+  configs,
+  selectedId,
+  onSelect,
+  loading,
+}: {
+  configs: AgentConfig[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  loading: boolean;
+}) {
+  if (!loading && configs.length === 0) {
+    return (
+      <div style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)' }}>
+        No agent configs found.
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {configs.map(config => (
+        <button
+          key={config.id}
+          className={`agent-row${selectedId === config.id ? ' agent-row--active' : ''}`}
+          onClick={() => onSelect(config.id)}
+        >
+          <span>
+            <div className="agent-row__name">{config.name ?? config.id}</div>
+            <div className="agent-row__meta">
+              <span>{config.id}</span>
+              <span>{config.model ?? 'default model'}</span>
+            </div>
+          </span>
+          <span className="stage-badge">{config.instances ?? 1}x</span>
+        </button>
+      ))}
+      {loading && (
+        <div style={{ padding: 16, color: 'var(--text-muted)' }}>
+          Loading configs...
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AgentConfigEditor({
+  config,
+  onChange,
+}: {
+  config: AgentConfig;
+  onChange: (config: AgentConfig) => void;
+}) {
+  const patch = (updates: Partial<AgentConfig>) => onChange({ ...config, ...updates });
+
+  return (
+    <div className="config-editor">
+      <div className="config-grid">
+        <FormField label="Agent ID">
+          <input className="form-input mono" value={config.id} readOnly />
+        </FormField>
+        <FormField label="Name">
+          <input
+            className="form-input"
+            value={config.name ?? ''}
+            onChange={event => patch({ name: event.target.value })}
+          />
+        </FormField>
+        <FormField label="Model">
+          <input
+            className="form-input"
+            value={config.model ?? ''}
+            onChange={event => patch({ model: event.target.value })}
+          />
+        </FormField>
+        <FormField label="Resource path">
+          <input
+            className="form-input mono"
+            value={config.resourcePath ?? ''}
+            onChange={event => patch({ resourcePath: event.target.value })}
+          />
+        </FormField>
+        <FormField label="Instances">
+          <input
+            className="form-input"
+            type="number"
+            min={1}
+            value={config.instances ?? 1}
+            onChange={event => patch({ instances: Number(event.target.value) })}
+          />
+        </FormField>
+        <FormField label="Max LLM calls">
+          <input
+            className="form-input"
+            type="number"
+            min={0}
+            value={config.maxLlmCalls ?? 0}
+            onChange={event => patch({ maxLlmCalls: Number(event.target.value) })}
+          />
+        </FormField>
+        <FormField label="Output key">
+          <input
+            className="form-input mono"
+            value={config.outputKey ?? ''}
+            onChange={event => patch({ outputKey: event.target.value })}
+          />
+        </FormField>
+        <FormField label="Output type">
+          <input
+            className="form-input"
+            value={config.outputType ?? ''}
+            onChange={event => patch({ outputType: event.target.value })}
+          />
+        </FormField>
+      </div>
+
+      <FormField label="Description">
+        <textarea
+          className="form-input textarea"
+          value={config.description ?? ''}
+          onChange={event => patch({ description: event.target.value })}
+        />
+      </FormField>
+
+      <div className="config-grid">
+        <FormField label="Input schema title">
+          <input
+            className="form-input"
+            value={config.inputSchemaTitle ?? ''}
+            onChange={event => patch({ inputSchemaTitle: event.target.value })}
+          />
+        </FormField>
+        <FormField label="Input class">
+          <input
+            className="form-input mono"
+            value={config.inputClass ?? ''}
+            onChange={event => patch({ inputClass: event.target.value })}
+          />
+        </FormField>
+        <FormField label="Output schema title">
+          <input
+            className="form-input"
+            value={config.outputSchemaTitle ?? ''}
+            onChange={event => patch({ outputSchemaTitle: event.target.value })}
+          />
+        </FormField>
+        <FormField label="Output class">
+          <input
+            className="form-input mono"
+            value={config.outputClass ?? ''}
+            onChange={event => patch({ outputClass: event.target.value })}
+          />
+        </FormField>
+      </div>
+
+      <FormField label="Input schema description">
+        <textarea
+          className="form-input textarea"
+          value={config.inputSchemaDescription ?? ''}
+          onChange={event => patch({ inputSchemaDescription: event.target.value })}
+        />
+      </FormField>
+
+      <FormField label="Output schema description">
+        <textarea
+          className="form-input textarea"
+          value={config.outputSchemaDescription ?? ''}
+          onChange={event => patch({ outputSchemaDescription: event.target.value })}
+        />
+      </FormField>
+
+      <FormField label="Tools">
+        <textarea
+          className="form-input textarea textarea--compact mono"
+          value={(config.tools ?? []).join('\n')}
+          onChange={event => patch({ tools: linesToList(event.target.value) })}
+        />
+      </FormField>
+
+      <FormField label="Feedback instructions">
+        <textarea
+          className="form-input textarea mono"
+          value={(config.feedbackInstructions ?? []).join('\n')}
+          onChange={event => patch({ feedbackInstructions: linesToList(event.target.value) })}
+        />
+      </FormField>
+
+      <label className="checkbox-row">
+        <input
+          type="checkbox"
+          checked={Boolean(config.bypassStateInjection)}
+          onChange={event => patch({ bypassStateInjection: event.target.checked })}
+        />
+        <span>Bypass state injection</span>
+      </label>
+    </div>
+  );
+}
+
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="form-field">
+      <span>{label}</span>
+      {children}
+    </label>
   );
 }
 
@@ -457,6 +774,55 @@ function AgentStyles() {
         overflow-wrap: anywhere;
       }
 
+      .agent-config-layout {
+        margin-top: 18px;
+      }
+
+      .config-editor {
+        display: grid;
+        gap: 16px;
+        padding: 16px;
+        border-top: 1px solid var(--border);
+      }
+
+      .config-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .form-field {
+        display: grid;
+        gap: 7px;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .textarea {
+        min-height: 92px;
+        resize: vertical;
+        line-height: 1.5;
+      }
+
+      .textarea--compact {
+        min-height: 68px;
+      }
+
+      .mono {
+        font-family: var(--font-mono);
+        font-size: 12px;
+      }
+
+      .checkbox-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-secondary);
+        font-weight: 700;
+      }
+
       @media (max-width: 1080px) {
         .agent-layout {
           grid-template-columns: 1fr;
@@ -468,7 +834,8 @@ function AgentStyles() {
       }
 
       @media (max-width: 640px) {
-        .detail-strip {
+        .detail-strip,
+        .config-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -505,6 +872,31 @@ function prettySnapshotJson(snapshot: AgentSnapshot) {
   };
 
   return JSON.stringify(currentTask, null, 2);
+}
+
+function cloneConfig(config: AgentConfig): AgentConfig {
+  return {
+    ...config,
+    tools: [...(config.tools ?? [])],
+    feedbackInstructions: [...(config.feedbackInstructions ?? [])],
+  };
+}
+
+function normalizeConfig(config: AgentConfig): AgentConfig {
+  return {
+    ...config,
+    instances: Math.max(1, Number(config.instances ?? 1)),
+    maxLlmCalls: Math.max(0, Number(config.maxLlmCalls ?? 0)),
+    tools: config.tools ?? [],
+    feedbackInstructions: config.feedbackInstructions ?? [],
+  };
+}
+
+function linesToList(value: string) {
+  return value
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
 }
 
 function parseJson(value?: string) {
