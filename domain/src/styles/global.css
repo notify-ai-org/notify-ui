@@ -199,6 +199,29 @@ body {
 
 .card-body { padding: 20px; }
 
+.generation-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(260px, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.generation-action {
+  min-height: 38px;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .generation-form {
+    grid-template-columns: 1fr;
+  }
+
+  .generation-action {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ── Metrics grid ────────────────────────────────────────────────────────────── */
 .metrics-grid {
   display: grid;

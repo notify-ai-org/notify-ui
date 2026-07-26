@@ -128,6 +128,7 @@ export interface MutationOptions {
   data?: unknown;
   params?: Record<string, unknown>;
   headers?: Record<string, string>;
+  timeoutMs?: number;
 }
 
 type MutationMethod = 'post' | 'put' | 'patch' | 'delete';
@@ -144,6 +145,7 @@ async function mutate<T = unknown>(
     data,
     params,
     headers,
+    timeoutMs,
   } = options;
 
   // Build a unique mutation ID  ("<cacheKey>:<uuid>" pattern for the rollback slice)
@@ -166,8 +168,8 @@ async function mutate<T = unknown>(
   try {
     const axios = getAxiosInstance();
     const response = await (method === 'delete'
-      ? axios.delete<T>(url, { params, headers })
-      : axios[method]<T>(url, data, { params, headers }));
+      ? axios.delete<T>(url, { params, headers, timeout: timeoutMs })
+      : axios[method]<T>(url, data, { params, headers, timeout: timeoutMs }));
 
     // Success: clean up rollback record + invalidate stale cache entry
     if (_store) {
