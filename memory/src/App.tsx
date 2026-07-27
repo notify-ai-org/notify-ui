@@ -1,22 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import { Brain, RefreshCw, Trash2 } from 'lucide-react';
+import { RefreshCw, Trash2 } from 'lucide-react';
 import { PortalSidebar, ProfileMenu, httpService } from '@notify-ui/shared';
 
 type PagedResponse<T> = {
   content: T[];
   totalPages: number;
-};
-
-type Fact = {
-  id: number;
-  factType?: string;
-  sentence?: string;
-  observedAt?: string;
-  confidence?: number;
-  importance?: number;
-  ttlDays?: number;
-  sourceEventIdsJson?: string;
 };
 
 type MemoryPage = {
@@ -39,97 +28,15 @@ export default function App() {
         <header className="topbar">
           <div>
             <div className="topbar-title">Memory</div>
-            <div className="topbar-subtitle">Facts and consolidated memory pages</div>
+            <div className="topbar-subtitle">Consolidated memory pages</div>
           </div>
           <ProfileMenu />
         </header>
         <main className="main-content">
-          <FactsTable />
           <MemoryPagesTable />
         </main>
       </div>
     </BrowserRouter>
-  );
-}
-
-function FactsTable() {
-  const [page, setPage] = useState(0);
-  const [data, setData] = useState<PagedResponse<Fact>>({ content: [], totalPages: 1 });
-
-  const load = async () => {
-    const next = await httpService.get<PagedResponse<Fact>>('/api/admin/data/facts', {
-      params: { page, size: 20, sort: 'observedAt,desc' },
-      ttlMs: 0,
-    });
-    setData(next);
-  };
-
-  useEffect(() => {
-    void load();
-  }, [page]);
-
-  const deleteFact = async (id: number) => {
-    if (!window.confirm('Delete this fact?')) return;
-
-    await httpService.delete(`/api/admin/data/facts/${id}`, { successModal: null });
-    await load();
-  };
-
-  return (
-    <section className="card">
-      <div className="card-header">
-        <span className="card-title">
-          <Brain size={15} /> Facts
-        </span>
-        <button className="btn-icon" title="Refresh facts" onClick={() => void load()}>
-          <RefreshCw size={14} />
-        </button>
-      </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Fact ID</th>
-              <th>Type</th>
-              <th>Sentence</th>
-              <th>Observed At</th>
-              <th>Confidence</th>
-              <th>Importance</th>
-              <th>TTL Days</th>
-              <th>Source Events</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.content.map(fact => (
-              <tr key={fact.id}>
-                <td className="mono">{fact.id}</td>
-                <td>{fact.factType || '-'}</td>
-                <td style={{ maxWidth: 300 }}>{fact.sentence || '-'}</td>
-                <td>{formatDate(fact.observedAt)}</td>
-                <td>{fact.confidence ?? '-'}</td>
-                <td>{fact.importance ?? '-'}</td>
-                <td>{fact.ttlDays ?? '-'}</td>
-                <td className="mono">{fact.sourceEventIdsJson || '-'}</td>
-                <td>
-                  <button
-                    className="btn-icon"
-                    title="Delete fact"
-                    style={{ color: '#ef4444' }}
-                    onClick={() => void deleteFact(fact.id)}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-
-            {!data.content.length && <EmptyRow columns={9} message="No facts found." />}
-          </tbody>
-        </table>
-      </div>
-      <Pager page={page} totalPages={data.totalPages} onChange={setPage} />
-    </section>
   );
 }
 
@@ -186,7 +93,20 @@ function MemoryPagesTable() {
                 <td className="mono">{item.pageId}</td>
                 <td>{item.namespace || '-'}</td>
                 <td>{item.pageType || '-'}</td>
-                <td style={{ maxWidth: 300 }}>{item.summary || '-'}</td>
+                <td style={{ maxWidth: 320 }}>
+                  <span
+                    title={item.summary || undefined}
+                    style={{
+                      display: 'block',
+                      maxWidth: 320,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {shortenSummary(item.summary)}
+                  </span>
+                </td>
                 <td>{item.severityMax ?? '-'}</td>
                 <td>{formatDate(item.timestamp)}</td>
                 <td>{item.importance ?? '-'}</td>
@@ -252,4 +172,11 @@ function EmptyRow({ columns, message }: { columns: number; message: string }) {
 
 function formatDate(value?: string) {
   return value ? new Date(value).toLocaleString() : '-';
+}
+
+function shortenSummary(value?: string) {
+  if (!value) return '-';
+  const summary = value.trim();
+  if (summary.length <= 96) return summary;
+  return `${summary.slice(0, 93).trimEnd()}...`;
 }

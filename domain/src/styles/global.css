@@ -211,6 +211,10 @@ body {
   white-space: nowrap;
 }
 
+.spin-icon {
+  animation: spin 0.9s linear infinite;
+}
+
 @media (max-width: 900px) {
   .generation-form {
     grid-template-columns: 1fr;
@@ -469,6 +473,7 @@ body {
   transition: border-color 0.15s;
 }
 .form-input:focus { border-color: var(--accent); }
+.form-input:disabled { cursor: wait; opacity: 0.72; }
 
 /* ── Pagination ──────────────────────────────────────────────────────────────── */
 .pagination {
@@ -517,6 +522,7 @@ body {
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
 @keyframes slideUp { from { transform: translateY(16px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
 @keyframes shimmer { to { background-position: -200% 0 } }
+@keyframes spin { to { transform: rotate(360deg) } }
 @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
 
 .live-dot {

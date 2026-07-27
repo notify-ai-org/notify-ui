@@ -8,6 +8,7 @@ export type PortalName =
   | 'templates'
   | 'domain'
   | 'vocab-rules'
+  | 'memory'
   | 'settings'
   | 'dead-letters';
 

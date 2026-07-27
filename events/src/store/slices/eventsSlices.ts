@@ -62,12 +62,22 @@ interface ScheduledEventsState {
   error: string | null;
 }
 
-export const fetchScheduledEvents = createAsyncThunk(
+export const fetchScheduledEvents = createAsyncThunk<ScheduledEvent[], { forceRefresh?: boolean } | void>(
   'scheduledEvents/fetch',
-  () => httpService.get<ScheduledEvent[]>('/api/admin/events/scheduled', {
-    cacheKey: 'events:scheduled',
-    ttlMs: 30_000,
-  }),
+  (options) => {
+    const forceRefresh = options?.forceRefresh ?? false;
+    const from = new Date();
+    const to = new Date(from.getTime() + 24 * 60 * 60 * 1000);
+    return httpService.get<ScheduledEvent[]>('/api/admin/data/scheduled-events', {
+      cacheKey: 'events:scheduled',
+      ttlMs: 30_000,
+      forceRefresh,
+      params: {
+        from: from.toISOString(),
+        to: to.toISOString(),
+      },
+    });
+  },
 );
 
 export const updateSchedule = createAsyncThunk(

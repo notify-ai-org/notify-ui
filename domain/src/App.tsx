@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import { Globe, Pencil, Plus, RefreshCw, Trash2, Wand2, X } from 'lucide-react';
+import { Globe, LoaderCircle, Pencil, Plus, RefreshCw, Trash2, Wand2, X } from 'lucide-react';
 import { PortalSidebar, ProfileMenu, httpService } from '@notify-ui/shared';
 
 const VALUE_TYPES = ['TEXT', 'IMAGE', 'FILE', 'NUMBER', 'DATE', 'RANGE'] as const;
@@ -55,7 +55,7 @@ export default function App() {
   const generateDomainContent = async () => {
     setGenerating(true);
     try {
-      await httpService.post<DomainContent[]>('/api/domain-content/ingest-website', {
+      await httpService.post<DomainContent[]>('/api/admin/data/ingest-website', {
         data: {
           businessName,
           websiteUrl,
@@ -94,14 +94,26 @@ export default function App() {
               </span>
             </div>
             <div className="card-body generation-form">
-              <TextField label="Business name" value={businessName} onChange={setBusinessName} />
-              <TextField label="Website link" value={websiteUrl} onChange={setWebsiteUrl} />
+              <TextField
+                label="Business name"
+                value={businessName}
+                disabled={generating}
+                onChange={setBusinessName}
+              />
+              <TextField
+                label="Website link"
+                value={websiteUrl}
+                disabled={generating}
+                onChange={setWebsiteUrl}
+              />
               <button
                 className="btn btn-primary generation-action"
+                aria-busy={generating}
                 disabled={generating || !businessName.trim() || !websiteUrl.trim()}
                 onClick={() => void generateDomainContent()}
               >
-                <Wand2 size={14} /> {generating ? 'Generating...' : 'Generate'}
+                {generating ? <LoaderCircle className="spin-icon" size={14} /> : <Wand2 size={14} />}
+                {generating ? 'Generating...' : 'Generate'}
               </button>
             </div>
           </section>
@@ -285,16 +297,23 @@ function ContentEditor({
 function TextField({
   label,
   value,
+  disabled = false,
   onChange,
 }: {
   label: string;
   value: string;
+  disabled?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
     <label className="form-group">
       <span className="form-label">{label}</span>
-      <input className="form-input" value={value} onChange={event => onChange(event.target.value)} />
+      <input
+        className="form-input"
+        value={value}
+        disabled={disabled}
+        onChange={event => onChange(event.target.value)}
+      />
     </label>
   );
 }

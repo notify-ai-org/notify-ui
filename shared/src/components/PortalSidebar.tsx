@@ -10,6 +10,7 @@ const portals: Array<{ name: PortalName; label: string }> = [
   { name: 'templates', label: 'Templates' },
   { name: 'domain', label: 'Domain' },
   { name: 'vocab-rules', label: 'Vocab Rules' },
+  { name: 'memory', label: 'Memory' },
   { name: 'settings', label: 'Settings' },
   { name: 'dead-letters', label: 'Dead Letters' },
 ];

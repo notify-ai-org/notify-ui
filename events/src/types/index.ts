@@ -25,14 +25,15 @@ export interface ScheduleConfig {
 
 export interface ScheduledEvent {
   id: string;
-  eventKey: string;
-  description: string;
-  status: ScheduleStatus;
-  schedule: ScheduleConfig;
-  lastRunAt: string | null;
-  nextRunAt: string | null;
-  successCount: number;
-  failureCount: number;
+  scheduleId: string;
+  jobId: string;
+  eventName: string;
+  channel: string;
+  triggerType: string;
+  fireTime: string;
+  scheduledAt: string | null;
+  cronExpression: string | null;
+  status?: ScheduleStatus;
 }
 
 export interface CaptureLogEntry {
