@@ -8,6 +8,8 @@ export interface Template {
   status: TemplateStatus;
   subject: string | null;
   body: string;
+  resolvedBody?: string;
+  resolvedSubject?: string | null;
   variables: string[];
   version: number;
   eventKey: string;

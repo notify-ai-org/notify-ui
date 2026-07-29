@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo } from 'react';
 import { Calendar, Clock3, RefreshCw } from 'lucide-react';
+import { PaginationControls } from '@notify-ui/shared';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchScheduledEvents } from '../../store/slices/eventsSlices';
 import type { ScheduledEvent } from '../../types';
 
 export function ScheduledEventsTable() {
   const dispatch = useAppDispatch();
-  const { items, loading, error } = useAppSelector(state => state.scheduledEvents);
+  const { items, loading, error, page, totalPages } = useAppSelector(state => state.scheduledEvents);
 
   useEffect(() => {
     dispatch(fetchScheduledEvents());
@@ -28,7 +29,7 @@ export function ScheduledEventsTable() {
           <button
             className="btn-icon"
             title="Refresh scheduled events"
-            onClick={() => dispatch(fetchScheduledEvents({ forceRefresh: true }))}
+            onClick={() => dispatch(fetchScheduledEvents({ forceRefresh: true, page }))}
           >
             <RefreshCw size={14} />
           </button>
@@ -66,6 +67,12 @@ export function ScheduledEventsTable() {
           </table>
         )}
       </div>
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        disabled={loading}
+        onChange={nextPage => dispatch(fetchScheduledEvents({ page: nextPage }))}
+      />
     </div>
   );
 }

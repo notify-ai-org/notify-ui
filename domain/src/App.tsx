@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { Globe, LoaderCircle, Pencil, Plus, RefreshCw, Trash2, Wand2, X } from 'lucide-react';
-import { PortalSidebar, ProfileMenu, httpService } from '@notify-ui/shared';
+import { PaginationControls, PortalSidebar, ProfileMenu, getPaginated, httpService } from '@notify-ui/shared';
 
 const VALUE_TYPES = ['TEXT', 'IMAGE', 'FILE', 'NUMBER', 'DATE', 'RANGE'] as const;
 
@@ -18,10 +18,10 @@ type DomainContent = {
   version?: number;
 };
 
-type PagedResponse<T> = { content: T[] };
-
 export default function App() {
   const [items, setItems] = useState<DomainContent[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [editorValue, setEditorValue] = useState<DomainContent | null>(null);
   const [creating, setCreating] = useState(false);
   const [businessName, setBusinessName] = useState('');
@@ -29,16 +29,17 @@ export default function App() {
   const [generating, setGenerating] = useState(false);
 
   const load = async () => {
-    const page = await httpService.get<PagedResponse<DomainContent>>('/api/admin/data/domain-content', {
-      params: { page: 0, size: 100 },
+    const result = await getPaginated<DomainContent>('/api/admin/data/domain-content', {
+      page,
       ttlMs: 0,
     });
-    setItems(page.content ?? []);
+    setItems(result.content);
+    setTotalPages(result.totalPages);
   };
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [page]);
 
   const deleteContent = async (id: string) => {
     if (!window.confirm('Delete this domain content entry?')) return;
@@ -133,6 +134,7 @@ export default function App() {
               </div>
             </div>
             <ContentTable items={items} onEdit={setEditorValue} onDelete={deleteContent} />
+            <PaginationControls page={page} totalPages={totalPages} onChange={setPage} />
           </section>
         </main>
 

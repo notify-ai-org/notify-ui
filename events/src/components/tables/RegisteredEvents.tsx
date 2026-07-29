@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Edit3, RefreshCw, Search, Trash2, Zap } from 'lucide-react';
+import { PaginationControls } from '@notify-ui/shared';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
   deleteRegisteredEvent,
@@ -22,7 +23,7 @@ type EventTypeFilter = typeof EVENT_TYPE_FILTERS[number];
 
 export function RegisteredEventsTable() {
   const dispatch = useAppDispatch();
-  const { items, loading } = useAppSelector(state => state.registeredEvents);
+  const { items, loading, page, totalPages } = useAppSelector(state => state.registeredEvents);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<EventTypeFilter>('ALL');
   const [editing, setEditing] = useState<RegisteredEvent | null>(null);
@@ -57,7 +58,7 @@ export function RegisteredEventsTable() {
           <button
             className="btn-icon"
             title="Refresh registered events"
-            onClick={() => dispatch(fetchRegisteredEvents())}
+            onClick={() => dispatch(fetchRegisteredEvents(page))}
           >
             <RefreshCw size={14} />
           </button>
@@ -82,6 +83,13 @@ export function RegisteredEventsTable() {
           />
         )}
       </div>
+
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        disabled={loading}
+        onChange={nextPage => dispatch(fetchRegisteredEvents(nextPage))}
+      />
 
       {editing && (
         <EventEditor

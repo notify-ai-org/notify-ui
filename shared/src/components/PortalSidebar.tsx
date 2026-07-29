@@ -79,14 +79,6 @@ export function PortalSidebar(): React.JSX.Element {
         }
         .portal-sidebar__link:hover { background: var(--bg-hover); border-left-color: var(--border-accent); color: var(--text-primary); }
         .portal-sidebar__link--active { background: var(--accent-glow); border-left-color: var(--accent); color: var(--accent-light); }
-        .topbar-title { display: inline-flex; align-items: center; gap: 9px; }
-        .topbar-title::before {
-          content: "";
-          width: 28px;
-          height: 28px;
-          flex: 0 0 auto;
-          background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Ccircle cx='512' cy='548' r='372' fill='%23050505'/%3E%3Cpath d='M512 338c-31.48 0-57 25.52-57 57v96H359c-31.48 0-57 25.52-57 57s25.52 57 57 57h96v96c0 31.48 25.52 57 57 57s57-25.52 57-57v-96h96c31.48 0 57-25.52 57-57s-25.52-57-57-57h-96v-96c0-31.48-25.52-57-57-57Z' fill='%23c9c9c9'/%3E%3Ccircle cx='772' cy='300' r='128' fill='%23e8ad08'/%3E%3Cpath d='M778.72 374h-45.6v-94.56c-15.52 10.4-31.52 16.96-48 19.68v-39.84c12.96-2.88 25.2-7.68 36.72-14.4 11.68-6.88 20.56-15.52 26.64-25.92h30.24V374Z' fill='%23050505'/%3E%3C/svg%3E");
-        }
         @media (max-width: 840px) {
           .app-shell { grid-template-columns: 1fr; grid-template-rows: auto auto minmax(0, 1fr); height: 100dvh; overflow: hidden; }
           .portal-sidebar { grid-column: 1; grid-row: 1; flex-direction: row; align-items: center; gap: 0; overflow-x: auto; overflow-y: hidden; padding: 0; }

@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Reducer } from '@reduxjs/toolkit';
-import { httpService } from '@notify-ui/shared';
+import { getPaginated, httpService } from '@notify-ui/shared';
 import type { DeadLetterEntry } from '../../types';
 
 interface State {
@@ -21,11 +21,9 @@ const initialState: State = {
 
 export const fetchDLQ = createAsyncThunk(
   'dlq/fetch',
-  ({ page, status }: { page: number; status: string }) => httpService.get<{
-    content: DeadLetterEntry[];
-    totalPages: number;
-  }>('/api/admin/dead-letter', {
-    params: { page, size: 20, status: status || undefined },
+  ({ page, status }: { page: number; status: string }) => getPaginated<DeadLetterEntry>('/api/admin/dead-letter', {
+    page,
+    params: { status: status || undefined },
   }),
 );
 
@@ -65,6 +63,7 @@ const slice = createSlice({
       state.loading = false;
       if (action.payload) {
         state.items = action.payload.content;
+        state.page = action.payload.number;
         state.totalPages = action.payload.totalPages;
       }
     });

@@ -27,6 +27,8 @@ export type { ApiConfig } from './api/apiConfig';
 // Axios / interceptors
 // ---------------------------------------------------------------------------
 export { getAxiosInstance, resetAxiosInstance, ApiError } from './api/interceptors';
+export { ADMIN_PAGE_SIZE, getPaginated } from './api/pagination';
+export type { PaginatedResponse, PaginationRequest } from './api/pagination';
 
 // ---------------------------------------------------------------------------
 // Redux store factory + slices
@@ -104,6 +106,9 @@ export type { UsePortalNavigationReturn } from './hooks/usePortalNavigation';
 
 export { PortalSidebar } from './components/PortalSidebar';
 export { ProfileMenu } from './components/ProfileMenu';
+export { PaginationControls } from './components/PaginationControls';
+export type { PaginationControlsProps } from './components/PaginationControls';
+export { PaginatedTable } from './components/PaginatedTable';
 
 // ---------------------------------------------------------------------------
 // Modal components

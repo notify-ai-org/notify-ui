@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import { httpService } from '@notify-ui/shared';
+import { getPaginated, httpService, type PaginatedResponse } from '@notify-ui/shared';
 import type { DomainEntry, DomainForm } from '../../types';
 import type { Reducer } from '@reduxjs/toolkit';
 
@@ -7,12 +7,18 @@ interface State {
   domains: DomainEntry[];
   form: DomainForm | null;
   loading: boolean;
+  page: number;
+  totalPages: number;
   saving: boolean;
 }
 
-export const fetchDomains = createAsyncThunk(
+export const fetchDomains = createAsyncThunk<PaginatedResponse<DomainEntry>, number | void>(
   'domains/fetch',
-  () => httpService.get<DomainEntry[]>('/api/admin/domains', { cacheKey: 'domains:list', ttlMs: 60_000 })
+  (page) => getPaginated<DomainEntry>('/api/admin/domains', {
+    page: page ?? 0,
+    cacheKey: 'domains:list',
+    ttlMs: 60_000,
+  })
 );
 
 export const fetchDomainForm = createAsyncThunk(
@@ -32,13 +38,18 @@ export const saveDomainForm = createAsyncThunk(
 
 const slice = createSlice({
   name: 'domains',
-  initialState: { domains: [], form: null, loading: false, saving: false } as State,
+  initialState: { domains: [], form: null, loading: false, page: 0, totalPages: 1, saving: false } as State,
   reducers: {
     setForm: (s, a: PayloadAction<DomainForm | null>) => { s.form = a.payload; }
   },
   extraReducers: b => {
     b.addCase(fetchDomains.pending, s => { s.loading = true; });
-    b.addCase(fetchDomains.fulfilled, (s, a) => { s.loading = false; s.domains = a.payload ?? []; });
+    b.addCase(fetchDomains.fulfilled, (s, a) => {
+      s.loading = false;
+      s.domains = a.payload.content;
+      s.page = a.payload.number;
+      s.totalPages = a.payload.totalPages;
+    });
     b.addCase(fetchDomains.rejected, s => { s.loading = false; });
     b.addCase(fetchDomainForm.fulfilled, (s, a) => { s.form = a.payload ?? null; });
     b.addCase(saveDomainForm.pending, s => { s.saving = true; });

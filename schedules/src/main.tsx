@@ -4,10 +4,11 @@ import { Provider } from 'react-redux';
 import { CalendarClock, RefreshCw, Search } from 'lucide-react';
 import {
   ModalProvider,
+  PaginationControls,
   PortalSidebar,
   ProfileMenu,
   createSharedStore,
-  httpService,
+  getPaginated,
   initApiConfig,
   registerErrorHandlerStore,
   registerHttpServiceStore,
@@ -24,8 +25,6 @@ type Schedule = {
   cronExpression?: string;
 };
 
-type PagedResponse<T> = { content: T[] };
-
 initApiConfig({
   baseURL: '',
   getAccessToken: () => document.cookie.match(/notify_access_token=([^;]+)/)?.[1] ?? null,
@@ -37,17 +36,20 @@ registerErrorHandlerStore(store);
 
 function SchedulesApp() {
   const [items, setItems] = useState<Schedule[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      const page = await httpService.get<PagedResponse<Schedule>>('/api/admin/data/schedules', {
-        params: { page: 0, size: 100 },
+      const result = await getPaginated<Schedule>('/api/admin/data/schedules', {
+        page,
         ttlMs: 0,
       });
-      setItems(page.content ?? []);
+      setItems(result.content);
+      setTotalPages(result.totalPages);
     } finally {
       setLoading(false);
     }
@@ -55,7 +57,7 @@ function SchedulesApp() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [page]);
 
   const visibleItems = useMemo(() => filterSchedules(items, query), [items, query]);
 
@@ -93,6 +95,7 @@ function SchedulesApp() {
             </div>
           </div>
           <ScheduleTable schedules={visibleItems} loading={loading} />
+          <PaginationControls page={page} totalPages={totalPages} onChange={setPage} disabled={loading} />
         </section>
       </main>
     </div>

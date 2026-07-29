@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
-import { PortalSidebar, ProfileMenu } from '@notify-ui/shared';
+import { PaginationControls, PortalSidebar, ProfileMenu } from '@notify-ui/shared';
 import { FileText, Plus, Search, CheckCircle, AlertTriangle, Trash2, Edit2, Eye, Save, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useDispatch, useSelector } from 'react-redux';
@@ -32,7 +32,7 @@ const BASE =
 /* ── Templates list ── */
 function TemplateList() {
   const dispatch = useAppDispatch();
-  const { items, loading } = useAppSelector(s => (s as any).templates);
+  const { items, loading, page, totalPages } = useAppSelector(s => (s as any).templates);
   const [search, setSearch] = useState('');
   const [channel, setChannel] = useState<TemplateChannel | 'ALL'>('ALL');
   const [eventInfo, setEventInfo] = useState<Template | null>(null);
@@ -109,6 +109,12 @@ function TemplateList() {
           </table>
         )}
       </div>
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        disabled={loading}
+        onChange={nextPage => dispatch(fetchTemplates(nextPage))}
+      />
       {eventInfo && <div className="modal-overlay" onClick={() => setEventInfo(null)}>
         <div className="modal-box" onClick={event => event.stopPropagation()}>
           <div className="modal-header">
@@ -149,9 +155,21 @@ function TemplateEditor({ isNew }: { isNew?: boolean }) {
     return () => { dispatch(setSelected(null)); dispatch(clearValidation()); };
   }, [id, isNew]);
 
-  useEffect(() => { if (selected && !isNew) setForm(selected); }, [selected]);
+  useEffect(() => {
+    if (selected && !isNew) {
+      setForm({
+        ...selected,
+        body: selected.channel === 'EMAIL' ? beautifyHtml(selected.body) : selected.body,
+      });
+    }
+  }, [selected, isNew]);
 
-  const set = (k: keyof Template, v: any) => setForm(prev => ({ ...prev, [k]: v }));
+  const set = (k: keyof Template, v: any) => setForm(prev => ({
+    ...prev,
+    [k]: v,
+    ...(k === 'body' ? { resolvedBody: undefined } : {}),
+    ...(k === 'subject' ? { resolvedSubject: undefined } : {}),
+  }));
 
   const handleSave = async () => {
     await dispatch(saveTemplate({ id: isNew ? null : id!, data: form }));
@@ -204,21 +222,39 @@ function TemplateEditor({ isNew }: { isNew?: boolean }) {
         <div className="card">
           <div className="card-header">
             <span className="card-title"><Edit2 size={15} /> Template Body</span>
-            <button className="btn btn-ghost" style={{ fontSize: 12 }} disabled={validating} onClick={() => dispatch(validateTemplate(form.body ?? ''))}>
-              <CheckCircle size={13} />{validating ? 'Validating…' : 'Validate'}
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {form.channel === 'EMAIL' && (
+                <button
+                  className="btn btn-ghost"
+                  style={{ fontSize: 12 }}
+                  onClick={() => set('body', beautifyHtml(form.body ?? ''))}
+                >
+                  Beautify HTML
+                </button>
+              )}
+              <button className="btn btn-ghost" style={{ fontSize: 12 }} disabled={validating} onClick={() => dispatch(validateTemplate(form.body ?? ''))}>
+                <CheckCircle size={13} />{validating ? 'Validating…' : 'Validate'}
+              </button>
+            </div>
           </div>
           <div className="card-body" style={{ padding: 0 }}>
-            <textarea
-              value={form.body ?? ''}
-              onChange={e => { set('body', e.target.value); dispatch(clearValidation()); }}
-              style={{
-                width: '100%', minHeight: 320, background: 'transparent', border: 'none',
-                color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', fontSize: 13,
-                padding: 16, outline: 'none', resize: 'vertical',
-              }}
-              placeholder="Hello {{firstName}},&#10;&#10;Your order {{orderId}} has been confirmed."
-            />
+            {form.channel === 'EMAIL' ? (
+              <HtmlCodeEditor
+                value={form.body ?? ''}
+                onChange={value => { set('body', value); dispatch(clearValidation()); }}
+              />
+            ) : (
+              <textarea
+                value={form.body ?? ''}
+                onChange={event => { set('body', event.target.value); dispatch(clearValidation()); }}
+                style={{
+                  width: '100%', minHeight: 320, background: 'transparent', border: 'none',
+                  color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', fontSize: 13,
+                  padding: 16, outline: 'none', resize: 'vertical',
+                }}
+                placeholder="Hello {{firstName}}, your order {{orderId}} has been confirmed."
+              />
+            )}
           </div>
           {/* Validation results */}
           {validation && (
@@ -248,12 +284,76 @@ function TemplateEditor({ isNew }: { isNew?: boolean }) {
 
         {/* Live preview */}
         <div className="card">
-          <div className="card-header"><span className="card-title"><Eye size={15} /> Preview</span></div>
+          <div className="card-header">
+            <span className="card-title"><Eye size={15} /> Resolved Preview</span>
+            {form.resolvedBody != null && <span className="badge badge-active">Domain content applied</span>}
+          </div>
           <div className="card-body">
-            <TemplatePreview body={form.body ?? ''} channel={form.channel} />
+            {form.resolvedSubject && form.channel === 'EMAIL' && (
+              <div style={{ marginBottom: 12, color: '#d0c9a8', fontSize: 13 }}>
+                <strong>Subject:</strong> {form.resolvedSubject}
+              </div>
+            )}
+            <TemplatePreview body={form.resolvedBody ?? form.body ?? ''} channel={form.channel} />
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function HtmlCodeEditor({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const gutterRef = useRef<HTMLPreElement>(null);
+  const lineCount = Math.max(value.split('\n').length, 1);
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '48px minmax(0, 1fr)', minHeight: 380, background: '#090b10' }}>
+      <pre
+        ref={gutterRef}
+        aria-hidden="true"
+        style={{
+          margin: 0,
+          padding: '16px 10px',
+          overflow: 'hidden',
+          borderRight: '1px solid rgba(255,255,255,0.08)',
+          color: '#475569',
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: 13,
+          lineHeight: 1.6,
+          textAlign: 'right',
+          userSelect: 'none',
+        }}
+      >
+        {Array.from({ length: lineCount }, (_, index) => index + 1).join('\n')}
+      </pre>
+      <textarea
+        aria-label="Email template HTML"
+        spellCheck={false}
+        value={value}
+        onChange={event => onChange(event.target.value)}
+        onScroll={event => {
+          if (gutterRef.current) gutterRef.current.scrollTop = event.currentTarget.scrollTop;
+        }}
+        style={{
+          width: '100%',
+          minHeight: 380,
+          margin: 0,
+          padding: 16,
+          resize: 'vertical',
+          border: 0,
+          outline: 'none',
+          background: 'transparent',
+          color: '#e2e8f0',
+          caretColor: '#facc15',
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: 13,
+          lineHeight: 1.6,
+          tabSize: 2,
+          whiteSpace: 'pre',
+          overflow: 'auto',
+        }}
+        placeholder={'<!doctype html>\n<html>\n  <body>\n    <h1>${BUSINESS_NAME}</h1>\n  </body>\n</html>'}
+      />
     </div>
   );
 }
@@ -280,6 +380,29 @@ function TemplatePreview({ body, channel }: { body: string; channel?: TemplateCh
 
 function looksLikeHtml(value: string) {
   return /<!doctype html|<html[\s>]|<body[\s>]|<\/?[a-z][\s\S]*>/i.test(value);
+}
+
+function beautifyHtml(value: string) {
+  if (!looksLikeHtml(value)) return value;
+
+  const voidElements = new Set([
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta',
+    'param', 'source', 'track', 'wbr',
+  ]);
+  const lines = value.trim().replace(/>\s*</g, '>\n<').split('\n');
+  let depth = 0;
+
+  return lines.map(rawLine => {
+    const line = rawLine.trim();
+    const startsWithClosingTag = /^<\//.test(line);
+    const outputDepth = startsWithClosingTag ? Math.max(depth - 1, 0) : depth;
+    const openingTags = Array.from(line.matchAll(/<([a-z][\w:-]*)\b[^>]*>/gi))
+      .filter(match => !match[0].startsWith('</') && !match[0].endsWith('/>') && !voidElements.has(match[1].toLowerCase()))
+      .length;
+    const closingTags = Array.from(line.matchAll(/<\/([a-z][\w:-]*)\s*>/gi)).length;
+    depth = Math.max(depth + openingTags - closingTags, 0);
+    return `${'  '.repeat(outputDepth)}${line}`;
+  }).join('\n');
 }
 
 /* ── App ── */

@@ -4,9 +4,11 @@ import { Provider } from 'react-redux';
 import { KeyRound, Plus, RefreshCw, X } from 'lucide-react';
 import {
   ModalProvider,
+  PaginationControls,
   PortalSidebar,
   ProfileMenu,
   createSharedStore,
+  getPaginated,
   httpService,
   initApiConfig,
   registerErrorHandlerStore,
@@ -32,12 +34,6 @@ type Credentials = {
   expiresAt: string;
 };
 
-type ClientsResponse = Client[] | {
-  content?: Client[];
-  clients?: Client[];
-  items?: Client[];
-};
-
 initApiConfig({
   baseURL: '',
   getAccessToken: () => document.cookie.match(/notify_access_token=([^;]+)/)?.[1] ?? null,
@@ -49,17 +45,20 @@ registerErrorHandlerStore(store);
 
 function ClientsApp() {
   const [clients, setClients] = useState<Client[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [creating, setCreating] = useState(false);
   const [credentials, setCredentials] = useState<Credentials | null>(null);
 
   const load = async () => {
-    const response = await httpService.get<ClientsResponse>('/api/admin/clients', { ttlMs: 0 });
-    setClients(normalizeClients(response));
+    const response = await getPaginated<Client>('/api/admin/clients', { page, ttlMs: 0 });
+    setClients(response.content);
+    setTotalPages(response.totalPages);
   };
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [page]);
 
   const handleCreated = async (credential: Credentials) => {
     await load();
@@ -94,6 +93,7 @@ function ClientsApp() {
             </div>
           </div>
           <ClientTable clients={clients} />
+          <PaginationControls page={page} totalPages={totalPages} onChange={setPage} />
         </section>
       </main>
 
@@ -237,11 +237,6 @@ function Credential({ label, value }: { label: string; value: string }) {
       <input className="form-input mono" value={value} readOnly />
     </label>
   );
-}
-
-function normalizeClients(response: ClientsResponse) {
-  if (Array.isArray(response)) return response;
-  return response.content ?? response.clients ?? response.items ?? [];
 }
 
 createRoot(document.getElementById('root')!).render(

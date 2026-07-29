@@ -24,6 +24,7 @@ import { getAxiosInstance } from '../api/interceptors';
 import {
   setEntry,
   invalidateEntry,
+  invalidateByPrefix,
   registerRollback,
   clearRollback,
 } from '../store/slices/cacheSlice';
@@ -176,6 +177,7 @@ async function mutate<T = unknown>(
       _store.dispatch(clearRollback(mutationId));
       if (invalidateKey) {
         _store.dispatch(invalidateEntry(invalidateKey));
+        _store.dispatch(invalidateByPrefix(`${invalidateKey}:page:`));
       }
 
       // Success modal (opt-in)

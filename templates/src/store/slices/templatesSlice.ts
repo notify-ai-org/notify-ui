@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import { httpService } from '@notify-ui/shared';
+import { getPaginated, httpService, type PaginatedResponse } from '@notify-ui/shared';
 import type { Template, TemplateValidationResult } from '../../types';
 import type { Reducer } from '@reduxjs/toolkit';
 
@@ -17,16 +17,25 @@ type BackendTemplate = {
   validated?: boolean;
 };
 
+type BackendTemplateDetail = {
+  template: BackendTemplate;
+  resolvedSubject?: string | null;
+  resolvedTemplate?: string | null;
+};
+
 interface TemplatesState {
   items: Template[];
   selected: Template | null;
   loading: boolean;
+  page: number;
+  totalPages: number;
+  totalElements: number;
   saving: boolean;
   validation: TemplateValidationResult | null;
   validating: boolean;
 }
 
-function toTemplate(dto: BackendTemplate): Template {
+function toTemplate(dto: BackendTemplate, resolved?: Pick<BackendTemplateDetail, 'resolvedSubject' | 'resolvedTemplate'>): Template {
   const eventKey = dto.eventName || dto.eventType || '';
   return {
     id: dto.id ?? '',
@@ -35,6 +44,8 @@ function toTemplate(dto: BackendTemplate): Template {
     status: dto.validated ? 'ACTIVE' : 'DRAFT',
     subject: dto.subject ?? null,
     body: dto.template ?? '',
+    resolvedBody: resolved?.resolvedTemplate ?? undefined,
+    resolvedSubject: resolved?.resolvedSubject ?? undefined,
     variables: [],
     version: 1,
     eventKey,
@@ -54,16 +65,15 @@ function toBackendTemplate(template: Partial<Template>): BackendTemplate {
   };
 }
 
-export const fetchTemplates = createAsyncThunk('templates/fetch', () =>
-  httpService
-    .get<BackendTemplate[]>(TEMPLATES_API, { cacheKey: 'templates:list', ttlMs: 30_000 })
-    .then(items => (items ?? []).map(toTemplate)),
+export const fetchTemplates = createAsyncThunk<PaginatedResponse<Template>, number | void>('templates/fetch', (page) =>
+  getPaginated<BackendTemplate>(TEMPLATES_API, { page: page ?? 0, cacheKey: 'templates:list', ttlMs: 30_000 })
+    .then(result => ({ ...result, content: result.content.map(toTemplate) })),
 );
 
 export const fetchTemplate = createAsyncThunk('templates/fetchOne', (id: string) =>
   httpService
-    .get<BackendTemplate[]>(TEMPLATES_API, { cacheKey: 'templates:list', ttlMs: 30_000 })
-    .then(items => (items ?? []).map(toTemplate).find(template => template.id === id) ?? null),
+    .get<BackendTemplateDetail>(`${TEMPLATES_API}/${id}`, { ttlMs: 0 })
+    .then(result => toTemplate(result.template, result)),
 );
 
 export const saveTemplate = createAsyncThunk('templates/save', ({ id, data }: { id: string | null; data: Partial<Template> }) =>
@@ -91,14 +101,20 @@ export const validateTemplate = createAsyncThunk('templates/validate', (body: st
 
 const slice = createSlice({
   name: 'templates',
-  initialState: { items: [], selected: null, loading: false, saving: false, validation: null, validating: false } as TemplatesState,
+  initialState: { items: [], selected: null, loading: false, page: 0, totalPages: 1, totalElements: 0, saving: false, validation: null, validating: false } as TemplatesState,
   reducers: {
     setSelected: (s, a: PayloadAction<Template | null>) => { s.selected = a.payload; },
     clearValidation: (s) => { s.validation = null; },
   },
   extraReducers: (b) => {
     b.addCase(fetchTemplates.pending, (s) => { s.loading = true; });
-    b.addCase(fetchTemplates.fulfilled, (s, a) => { s.loading = false; s.items = a.payload ?? []; });
+    b.addCase(fetchTemplates.fulfilled, (s, a) => {
+      s.loading = false;
+      s.items = a.payload.content;
+      s.page = a.payload.number;
+      s.totalPages = a.payload.totalPages;
+      s.totalElements = a.payload.totalElements;
+    });
     b.addCase(fetchTemplates.rejected, (s) => { s.loading = false; });
     b.addCase(fetchTemplate.fulfilled, (s, a) => { s.selected = a.payload ?? null; });
     b.addCase(saveTemplate.pending, (s) => { s.saving = true; });

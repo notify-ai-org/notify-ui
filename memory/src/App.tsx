@@ -1,24 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { RefreshCw, Trash2 } from 'lucide-react';
-import { PortalSidebar, ProfileMenu, httpService } from '@notify-ui/shared';
-
-type PagedResponse<T> = {
-  content: T[];
-  totalPages: number;
-};
-
-type MemoryPage = {
-  pageId: string;
-  namespace?: string;
-  pageType?: string;
-  summary?: string;
-  severityMax?: number;
-  timestamp?: string;
-  importance?: number;
-  confidence?: number;
-  createdAt?: string;
-};
+import { PaginationControls, PortalSidebar, ProfileMenu } from '@notify-ui/shared';
+import { useAppDispatch, useAppSelector } from './store/hooks';
+import {
+  deleteMemoryPage,
+  fetchMemoryPages,
+  setMemoryPagesPage,
+} from './store/slices/memorySlice';
+import type { MemoryPage } from './types';
 
 export default function App() {
   return (
@@ -41,33 +31,31 @@ export default function App() {
 }
 
 function MemoryPagesTable() {
-  const [page, setPage] = useState(0);
-  const [data, setData] = useState<PagedResponse<MemoryPage>>({ content: [], totalPages: 1 });
-
-  const load = async () => {
-    const next = await httpService.get<PagedResponse<MemoryPage>>('/api/admin/data/memory-pages', {
-      params: { page, size: 20, sort: 'createdAt,desc' },
-      ttlMs: 0,
-    });
-    setData(next);
+  const dispatch = useAppDispatch();
+  const { items, loading, page, totalPages, deleting } = useAppSelector(state => state.memoryPages) as {
+    items: MemoryPage[];
+    loading: boolean;
+    page: number;
+    totalPages: number;
+    deleting: string[];
   };
 
   useEffect(() => {
-    void load();
-  }, [page]);
+    dispatch(fetchMemoryPages(page));
+  }, [dispatch, page]);
 
   const erasePage = async (id: string) => {
     if (!window.confirm('Erase this memory page?')) return;
 
-    await httpService.delete(`/api/admin/data/memory-pages/${id}`, { successModal: null });
-    await load();
+    await dispatch(deleteMemoryPage(id)).unwrap();
+    dispatch(fetchMemoryPages(page));
   };
 
   return (
     <section className="card">
       <div className="card-header">
         <span className="card-title">Memory Pages</span>
-        <button className="btn-icon" title="Refresh memory pages" onClick={() => void load()}>
+        <button className="btn-icon" title="Refresh memory pages" disabled={loading} onClick={() => dispatch(fetchMemoryPages(page))}>
           <RefreshCw size={14} />
         </button>
       </div>
@@ -76,23 +64,23 @@ function MemoryPagesTable() {
           <thead>
             <tr>
               <th>Page ID</th>
+              <th>Tenant ID</th>
               <th>Namespace</th>
-              <th>Page Type</th>
+              <th>Correlation ID</th>
               <th>Summary</th>
               <th>Severity</th>
-              <th>Timestamp</th>
-              <th>Importance</th>
-              <th>Confidence</th>
               <th>Created At</th>
+              <th>Updated At</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {data.content.map(item => (
+            {items.map(item => (
               <tr key={item.pageId}>
                 <td className="mono">{item.pageId}</td>
+                <td className="mono">{item.tenantId || '-'}</td>
                 <td>{item.namespace || '-'}</td>
-                <td>{item.pageType || '-'}</td>
+                <td className="mono">{item.correlationId || '-'}</td>
                 <td style={{ maxWidth: 320 }}>
                   <span
                     title={item.summary || undefined}
@@ -108,14 +96,13 @@ function MemoryPagesTable() {
                   </span>
                 </td>
                 <td>{item.severityMax ?? '-'}</td>
-                <td>{formatDate(item.timestamp)}</td>
-                <td>{item.importance ?? '-'}</td>
-                <td>{item.confidence ?? '-'}</td>
                 <td>{formatDate(item.createdAt)}</td>
+                <td>{formatDate(item.updatedAt)}</td>
                 <td>
                   <button
                     className="btn-icon"
                     title="Erase page"
+                    disabled={deleting.includes(item.pageId)}
                     style={{ color: '#ef4444' }}
                     onClick={() => void erasePage(item.pageId)}
                   >
@@ -125,38 +112,17 @@ function MemoryPagesTable() {
               </tr>
             ))}
 
-            {!data.content.length && <EmptyRow columns={10} message="No memory pages found." />}
+            {!items.length && <EmptyRow columns={9} message={loading ? "Loading memory pages..." : "No memory pages found."} />}
           </tbody>
         </table>
       </div>
-      <Pager page={page} totalPages={data.totalPages} onChange={setPage} />
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        disabled={loading}
+        onChange={nextPage => dispatch(setMemoryPagesPage(nextPage))}
+      />
     </section>
-  );
-}
-
-function Pager({
-  page,
-  totalPages,
-  onChange,
-}: {
-  page: number;
-  totalPages: number;
-  onChange: (page: number) => void;
-}) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: 14 }}>
-      <button className="btn btn-ghost" disabled={page === 0} onClick={() => onChange(page - 1)}>
-        Previous
-      </button>
-      <span style={{ padding: 7, color: '#8d855f' }}>Page {page + 1}</span>
-      <button
-        className="btn btn-ghost"
-        disabled={page + 1 >= totalPages}
-        onClick={() => onChange(page + 1)}
-      >
-        Next
-      </button>
-    </div>
   );
 }
 

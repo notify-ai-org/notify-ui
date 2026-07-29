@@ -19,6 +19,17 @@ export interface MemoryLog {
   expiryDays: number | null;
 }
 
+export interface MemoryPage {
+  pageId: string;
+  tenantId?: string;
+  namespace?: string;
+  correlationId?: string;
+  summary?: string;
+  severityMax?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface ExpiryConfig {
   tenantId: string;
   defaultExpiryDays: number;

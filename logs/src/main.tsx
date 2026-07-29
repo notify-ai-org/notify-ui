@@ -4,10 +4,11 @@ import { Provider } from 'react-redux';
 import { ClipboardList, Eye, RefreshCw, X } from 'lucide-react';
 import {
   ModalProvider,
+  PaginationControls,
   PortalSidebar,
   ProfileMenu,
   createSharedStore,
-  httpService,
+  getPaginated,
   initApiConfig,
   registerErrorHandlerStore,
   registerHttpServiceStore,
@@ -38,8 +39,9 @@ function LogsApp() {
     setLoading(true);
     setError(null);
     try {
-      const next = await httpService.get<PagedResponse>(`/api/admin/data/logs/${kind}`, {
-        params: { page, size: 20, sort: 'timestamp,desc' },
+      const next = await getPaginated<Record<string, unknown>>(`/api/admin/data/logs/${kind}`, {
+        page,
+        params: { sort: 'timestamp,desc' },
         ttlMs: 0,
       });
       setData({
@@ -88,7 +90,7 @@ function LogsApp() {
           </div>
           {error && <div className="form-error" style={{ margin: 14 }}>{error}</div>}
           <LogTable kind={kind} rows={data.content} loading={loading} error={error} />
-          <Pagination page={page} totalPages={data.totalPages} onChange={setPage} />
+          <PaginationControls page={page} totalPages={data.totalPages} onChange={setPage} disabled={loading} />
         </section>
       </main>
     </div>
@@ -180,32 +182,6 @@ function LogTable({
 
       {selected && <LogDetailsModal row={selected} onClose={() => setSelected(null)} />}
     </>
-  );
-}
-
-function Pagination({
-  page,
-  totalPages,
-  onChange,
-}: {
-  page: number;
-  totalPages: number;
-  onChange: (page: number) => void;
-}) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: 14 }}>
-      <button className="btn btn-ghost" disabled={page === 0} onClick={() => onChange(page - 1)}>
-        Previous
-      </button>
-      <span style={{ padding: '7px 0', color: 'var(--text-muted)' }}>Page {page + 1}</span>
-      <button
-        className="btn btn-ghost"
-        disabled={page + 1 >= totalPages}
-        onClick={() => onChange(page + 1)}
-      >
-        Next
-      </button>
-    </div>
   );
 }
 

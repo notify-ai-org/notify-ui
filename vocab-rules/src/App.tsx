@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { BookOpen, Plus, Save, Search, ToggleLeft, ToggleRight, Trash2, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useDispatch, useSelector } from 'react-redux';
-import { PortalSidebar, ProfileMenu, httpService } from '@notify-ui/shared';
+import { PaginationControls, PortalSidebar, ProfileMenu, httpService } from '@notify-ui/shared';
 import type { AppDispatch, RootState } from './store';
 import { deleteRule, fetchRules, saveRule } from './store/slices/vocabSlice';
 import type { VocabRule } from './types';
@@ -141,9 +141,11 @@ function VocabularyTreeNode({
 
 function RuleList() {
   const dispatch = useD();
-  const { items, loading } = useS(state => state.vocab) as {
+  const { items, loading, page, totalPages } = useS(state => state.vocab) as {
     items: VocabRule[];
     loading: boolean;
+    page: number;
+    totalPages: number;
   };
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
@@ -189,6 +191,12 @@ function RuleList() {
             />
           )}
         </div>
+        <PaginationControls
+          page={page}
+          totalPages={totalPages}
+          disabled={loading}
+          onChange={nextPage => dispatch(fetchRules(nextPage))}
+        />
       </div>
     </>
   );

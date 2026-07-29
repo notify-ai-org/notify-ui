@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CloudCog, Database, LockKeyhole, Save, Search, Settings } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { PortalSidebar } from '@notify-ui/shared';
+import { PaginationControls, PortalSidebar } from '@notify-ui/shared';
 import type { AppDispatch, RootState } from './store';
 import {
   fetchManagedConfigurations,
@@ -15,10 +15,12 @@ const useS = <T,>(selector: (state: RootState) => T) => useSelector<RootState, T
 
 export default function App() {
   const dispatch = useD();
-  const { items, loading, savingKey } = useS(state => state.settings) as {
+  const { items, loading, savingKey, page, totalPages } = useS(state => state.settings) as {
     items: ManagedConfiguration[];
     loading: boolean;
     savingKey: string | null;
+    page: number;
+    totalPages: number;
   };
   const [query, setQuery] = useState('');
 
@@ -56,6 +58,12 @@ export default function App() {
               onSave={(key, value) => dispatch(saveManagedConfiguration({ key, value }))}
             />
           )}
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            disabled={loading}
+            onChange={nextPage => dispatch(fetchManagedConfigurations(nextPage))}
+          />
         </div>
       </main>
     </div>

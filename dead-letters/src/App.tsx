@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import {
-  ChevronLeft,
-  ChevronRight,
   Eye,
   RefreshCw,
   Skull,
@@ -11,7 +9,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useDispatch, useSelector } from 'react-redux';
-import { PortalSidebar } from '@notify-ui/shared';
+import { PaginationControls, PortalSidebar } from '@notify-ui/shared';
 import type { AppDispatch, RootState } from './store';
 import { discardEntry, fetchDLQ, retryEntry, setDLQPage } from './store/slices/dlqSlice';
 import type { DLQStatus, DeadLetterEntry } from './types';
@@ -100,7 +98,12 @@ function DLQTable() {
           )}
         </div>
 
-        <Pager page={page} total={totalPages} onChange={nextPage => dispatch(setDLQPage(nextPage))} />
+        <PaginationControls
+          page={page}
+          totalPages={totalPages}
+          disabled={loading}
+          onChange={nextPage => dispatch(setDLQPage(nextPage))}
+        />
       </div>
 
       {viewEntry && <PayloadModal entry={viewEntry} onClose={() => setViewEntry(null)} />}
@@ -311,41 +314,6 @@ function DeadLetterRow({
         </div>
       </td>
     </tr>
-  );
-}
-
-function Pager({
-  page,
-  total,
-  onChange,
-}: {
-  page: number;
-  total: number;
-  onChange: (page: number) => void;
-}) {
-  if (total <= 1) return null;
-
-  return (
-    <div className="pagination">
-      <button className="page-btn" disabled={page === 0} onClick={() => onChange(page - 1)}>
-        <ChevronLeft size={14} />
-      </button>
-      {Array.from({ length: Math.min(total, 5) }).map((_, index) => {
-        const nextPage = total <= 5 ? index : Math.max(0, page - 2) + index;
-        return (
-          <button
-            key={nextPage}
-            className={`page-btn${nextPage === page ? ' active' : ''}`}
-            onClick={() => onChange(nextPage)}
-          >
-            {nextPage + 1}
-          </button>
-        );
-      })}
-      <button className="page-btn" disabled={page === total - 1} onClick={() => onChange(page + 1)}>
-        <ChevronRight size={14} />
-      </button>
-    </div>
   );
 }
 

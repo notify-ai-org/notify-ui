@@ -1,23 +1,28 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import type { Reducer } from '@reduxjs/toolkit';
-import { httpService } from '@notify-ui/shared';
+import { getPaginated, httpService, type PaginatedResponse } from '@notify-ui/shared';
 import type { VocabRule } from '../../types';
 
 interface State {
   items: VocabRule[];
   loading: boolean;
+  page: number;
+  totalPages: number;
   saving: boolean;
 }
 
 const initialState: State = {
   items: [],
   loading: false,
+  page: 0,
+  totalPages: 1,
   saving: false,
 };
 
-export const fetchRules = createAsyncThunk(
+export const fetchRules = createAsyncThunk<PaginatedResponse<VocabRule>, number | void>(
   'vocab/fetch',
-  () => httpService.get<VocabRule[]>('/api/admin/vocab-rules', {
+  (page) => getPaginated<VocabRule>('/api/admin/vocab-rules', {
+    page: page ?? 0,
     cacheKey: 'vocab:rules',
     ttlMs: 30_000,
   }),
@@ -60,7 +65,9 @@ const slice = createSlice({
     });
     builder.addCase(fetchRules.fulfilled, (state, action) => {
       state.loading = false;
-      state.items = action.payload ?? [];
+      state.items = action.payload.content;
+      state.page = action.payload.number;
+      state.totalPages = action.payload.totalPages;
     });
     builder.addCase(fetchRules.rejected, state => {
       state.loading = false;
