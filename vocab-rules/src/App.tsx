@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { BookOpen, Plus, Save, Search, ToggleLeft, ToggleRight, Trash2, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useDispatch, useSelector } from 'react-redux';
-import { PaginationControls, PortalSidebar, ProfileMenu, httpService } from '@notify-ui/shared';
+import { PaginationControls, PortalSidebar, ProfileMenu, getPaginated, httpService } from '@notify-ui/shared';
 import type { AppDispatch, RootState } from './store';
 import { deleteRule, fetchRules, saveRule } from './store/slices/vocabSlice';
 import type { VocabRule } from './types';
@@ -31,7 +31,7 @@ const BASE =
     : configuredBase ?? defaultBase;
 
 type VocabularyNode = {
-  id: number;
+  id: string;
   term: string;
   description?: string;
   type?: string;
@@ -64,13 +64,22 @@ export default function App() {
 
 function VocabularyTree() {
   const [items, setItems] = useState<VocabularyNode[]>([]);
-  const [open, setOpen] = useState<Set<number>>(new Set());
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    void httpService.get<VocabularyNode[]>('/api/admin/vocabulary', { ttlMs: 0 }).then(setItems);
-  }, []);
+    setLoading(true);
+    void getPaginated<VocabularyNode>('/api/admin/vocabulary', { page, ttlMs: 0 })
+      .then(result => {
+        setItems(result.content ?? []);
+        setTotalPages(result.totalPages ?? 1);
+      })
+      .finally(() => setLoading(false));
+  }, [page]);
 
-  const toggle = (id: number) => {
+  const toggle = (id: string) => {
     setOpen(current => {
       const next = new Set(current);
       if (next.has(id)) {
@@ -90,11 +99,18 @@ function VocabularyTree() {
         </span>
       </div>
       <div className="card-body">
-        {items.map(node => (
+        {!loading && items.map(node => (
           <VocabularyTreeNode key={node.id} node={node} depth={0} open={open} onToggle={toggle} />
         ))}
-        {!items.length && <span style={{ color: '#8d855f' }}>No vocabulary terms found.</span>}
+        {loading && <span style={{ color: '#8d855f' }}>Loading vocabulary...</span>}
+        {!loading && !items.length && <span style={{ color: '#8d855f' }}>No vocabulary terms found.</span>}
       </div>
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        disabled={loading}
+        onChange={setPage}
+      />
     </div>
   );
 }
@@ -107,8 +123,8 @@ function VocabularyTreeNode({
 }: {
   node: VocabularyNode;
   depth: number;
-  open: Set<number>;
-  onToggle: (id: number) => void;
+  open: Set<string>;
+  onToggle: (id: string) => void;
 }) {
   const expanded = open.has(node.id);
 
@@ -119,14 +135,14 @@ function VocabularyTreeNode({
         style={{ padding: '4px 0', border: 0, color: '#fde047' }}
         onClick={() => onToggle(node.id)}
       >
-        {node.children.length ? (expanded ? 'v' : '>') : '-'} {node.term}
+        {(node.children?.length ?? 0) ? (expanded ? 'v' : '>') : '-'} {node.term}
       </button>
       {node.description && (
         <span style={{ marginLeft: 8, color: '#8d855f', fontSize: 12 }}>
           {node.description}
         </span>
       )}
-      {expanded && node.children.map(child => (
+      {expanded && (node.children ?? []).map(child => (
         <VocabularyTreeNode
           key={child.id}
           node={child}
@@ -304,6 +320,7 @@ function RuleRow({
 
 function RuleEditor({ isNew }: { isNew?: boolean }) {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const dispatch = useD();
   const { saving } = useS(state => state.vocab) as { saving: boolean };
   const [form, setForm] = useState<Partial<VocabRule>>({
@@ -316,12 +333,18 @@ function RuleEditor({ isNew }: { isNew?: boolean }) {
     active: true,
   });
 
+  useEffect(() => {
+    if (isNew || !id) return;
+    void httpService.get<VocabRule>(`/api/admin/vocab-rules/${encodeURIComponent(id)}`, { ttlMs: 0 })
+      .then(rule => setForm(rule));
+  }, [id, isNew]);
+
   const set = (key: keyof VocabRule, value: unknown) => {
     setForm(previous => ({ ...previous, [key]: value }));
   };
 
   const save = async () => {
-    await dispatch(saveRule({ id: null, data: form }));
+    await dispatch(saveRule({ id: isNew ? null : id ?? null, data: form })).unwrap();
     navigate('/');
   };
 

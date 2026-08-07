@@ -62,6 +62,30 @@ type SnapshotCounts = {
   withTask: number;
 };
 
+const MODEL_OPTIONS = [
+  {
+    provider: 'OpenAI',
+    models: [
+      { value: 'gpt-4o-mini', label: 'GPT-4o mini' },
+      { value: 'gpt-4o', label: 'GPT-4o' },
+      { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+      { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+    ],
+  },
+  {
+    provider: 'Google',
+    models: [
+      { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+      { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+      { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+      { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite' },
+      { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+      { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+      { value: 'gemini-1.5-flash-8b', label: 'Gemini 1.5 Flash 8B' },
+    ],
+  },
+];
+
 initApiConfig({
   baseURL: '',
   getAccessToken: () => document.cookie.match(/notify_access_token=([^;]+)/)?.[1] ?? null,
@@ -412,29 +436,23 @@ function AgentConfigEditor({
   return (
     <div className="config-editor">
       <div className="config-grid">
-        <FormField label="Agent ID">
-          <input className="form-input mono" value={config.id} readOnly />
-        </FormField>
-        <FormField label="Name">
-          <input
-            className="form-input"
-            value={config.name ?? ''}
-            onChange={event => patch({ name: event.target.value })}
-          />
-        </FormField>
-        <FormField label="Model">
-          <input
+        <FormField label="Model provider">
+          <select
             className="form-input"
             value={config.model ?? ''}
             onChange={event => patch({ model: event.target.value })}
-          />
-        </FormField>
-        <FormField label="Resource path">
-          <input
-            className="form-input mono"
-            value={config.resourcePath ?? ''}
-            onChange={event => patch({ resourcePath: event.target.value })}
-          />
+          >
+            {!MODEL_OPTIONS.some(group => group.models.some(model => model.value === config.model)) && (
+              <option value={config.model ?? ''}>{config.model || 'Select a model'}</option>
+            )}
+            {MODEL_OPTIONS.map(group => (
+              <optgroup key={group.provider} label={group.provider}>
+                {group.models.map(model => (
+                  <option key={model.value} value={model.value}>{model.label}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
         </FormField>
         <FormField label="Instances">
           <input
@@ -454,101 +472,7 @@ function AgentConfigEditor({
             onChange={event => patch({ maxLlmCalls: Number(event.target.value) })}
           />
         </FormField>
-        <FormField label="Output key">
-          <input
-            className="form-input mono"
-            value={config.outputKey ?? ''}
-            onChange={event => patch({ outputKey: event.target.value })}
-          />
-        </FormField>
-        <FormField label="Output type">
-          <input
-            className="form-input"
-            value={config.outputType ?? ''}
-            onChange={event => patch({ outputType: event.target.value })}
-          />
-        </FormField>
       </div>
-
-      <FormField label="Description">
-        <textarea
-          className="form-input textarea"
-          value={config.description ?? ''}
-          onChange={event => patch({ description: event.target.value })}
-        />
-      </FormField>
-
-      <div className="config-grid">
-        <FormField label="Input schema title">
-          <input
-            className="form-input"
-            value={config.inputSchemaTitle ?? ''}
-            onChange={event => patch({ inputSchemaTitle: event.target.value })}
-          />
-        </FormField>
-        <FormField label="Input class">
-          <input
-            className="form-input mono"
-            value={config.inputClass ?? ''}
-            onChange={event => patch({ inputClass: event.target.value })}
-          />
-        </FormField>
-        <FormField label="Output schema title">
-          <input
-            className="form-input"
-            value={config.outputSchemaTitle ?? ''}
-            onChange={event => patch({ outputSchemaTitle: event.target.value })}
-          />
-        </FormField>
-        <FormField label="Output class">
-          <input
-            className="form-input mono"
-            value={config.outputClass ?? ''}
-            onChange={event => patch({ outputClass: event.target.value })}
-          />
-        </FormField>
-      </div>
-
-      <FormField label="Input schema description">
-        <textarea
-          className="form-input textarea"
-          value={config.inputSchemaDescription ?? ''}
-          onChange={event => patch({ inputSchemaDescription: event.target.value })}
-        />
-      </FormField>
-
-      <FormField label="Output schema description">
-        <textarea
-          className="form-input textarea"
-          value={config.outputSchemaDescription ?? ''}
-          onChange={event => patch({ outputSchemaDescription: event.target.value })}
-        />
-      </FormField>
-
-      <FormField label="Tools">
-        <textarea
-          className="form-input textarea textarea--compact mono"
-          value={(config.tools ?? []).join('\n')}
-          onChange={event => patch({ tools: linesToList(event.target.value) })}
-        />
-      </FormField>
-
-      <FormField label="Feedback instructions">
-        <textarea
-          className="form-input textarea mono"
-          value={(config.feedbackInstructions ?? []).join('\n')}
-          onChange={event => patch({ feedbackInstructions: linesToList(event.target.value) })}
-        />
-      </FormField>
-
-      <label className="checkbox-row">
-        <input
-          type="checkbox"
-          checked={Boolean(config.bypassStateInjection)}
-          onChange={event => patch({ bypassStateInjection: event.target.checked })}
-        />
-        <span>Bypass state injection</span>
-      </label>
     </div>
   );
 }
@@ -890,13 +814,6 @@ function normalizeConfig(config: AgentConfig): AgentConfig {
     tools: config.tools ?? [],
     feedbackInstructions: config.feedbackInstructions ?? [],
   };
-}
-
-function linesToList(value: string) {
-  return value
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean);
 }
 
 function parseJson(value?: string) {

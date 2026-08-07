@@ -134,7 +134,12 @@ export default function App() {
               </div>
             </div>
             <ContentTable items={items} onEdit={setEditorValue} onDelete={deleteContent} />
-            <PaginationControls page={page} totalPages={totalPages} onChange={setPage} />
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              onChange={setPage}
+              alwaysVisible
+            />
           </section>
         </main>
 

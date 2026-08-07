@@ -5,6 +5,7 @@ export interface PaginationControlsProps {
   totalPages: number;
   onChange: (page: number) => void;
   disabled?: boolean;
+  alwaysVisible?: boolean;
 }
 
 export function PaginationControls({
@@ -12,11 +13,13 @@ export function PaginationControls({
   totalPages,
   onChange,
   disabled = false,
+  alwaysVisible = false,
 }: PaginationControlsProps) {
-  if (totalPages <= 1) return null;
+  if (!alwaysVisible && totalPages <= 1) return null;
 
-  const visiblePages = Math.min(totalPages, 5);
-  const start = Math.min(Math.max(page - 2, 0), Math.max(totalPages - visiblePages, 0));
+  const pageCount = Math.max(totalPages, 1);
+  const visiblePages = Math.min(pageCount, 5);
+  const start = Math.min(Math.max(page - 2, 0), Math.max(pageCount - visiblePages, 0));
 
   return (
     <div className="pagination" aria-label="Table pagination">
@@ -45,7 +48,7 @@ export function PaginationControls({
       <button
         className="page-btn"
         aria-label="Next page"
-        disabled={disabled || page + 1 >= totalPages}
+        disabled={disabled || page + 1 >= pageCount}
         onClick={() => onChange(page + 1)}
       >
         <ChevronRight size={14} />
