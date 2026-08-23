@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import { Globe, LoaderCircle, Pencil, Plus, RefreshCw, Trash2, Wand2, X } from 'lucide-react';
-import { PaginationControls, PortalSidebar, ProfileMenu, getPaginated, httpService } from '@notify-ui/shared';
+import { Download, Eye, FileText, Globe, LoaderCircle, Pencil, Plus, RefreshCw, Trash2, Upload, Wand2, X } from 'lucide-react';
+import { PaginationControls, PortalSidebar, ProfileMenu, getAxiosInstance, getPaginated, httpService } from '@notify-ui/shared';
 
 const VALUE_TYPES = ['TEXT', 'IMAGE', 'FILE', 'NUMBER', 'DATE', 'RANGE'] as const;
 
@@ -18,6 +18,17 @@ type DomainContent = {
   version?: number;
 };
 
+type Artifact = {
+  id: string;
+  name: string;
+  mediaType: string;
+  sizeBytes: number;
+  storageStatus: string;
+  indexStatus: string;
+  version: number;
+  createdAt: string;
+};
+
 export default function App() {
   const [items, setItems] = useState<DomainContent[]>([]);
   const [page, setPage] = useState(0);
@@ -27,6 +38,9 @@ export default function App() {
   const [businessName, setBusinessName] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const load = async () => {
     const result = await getPaginated<DomainContent>('/api/admin/data/domain-content', {
@@ -40,6 +54,64 @@ export default function App() {
   useEffect(() => {
     void load();
   }, [page]);
+
+  const loadArtifacts = async () => {
+    const result = await httpService.get<Artifact[]>('/api/artifacts', {
+      params: { limit: 100 },
+      ttlMs: 0,
+    });
+    setArtifacts(result);
+  };
+
+  useEffect(() => {
+    void loadArtifacts();
+  }, []);
+
+  const uploadArtifact = async () => {
+    if (!selectedFile) return;
+    const form = new FormData();
+    form.append('file', selectedFile);
+    setUploading(true);
+    try {
+      await httpService.post<Artifact>('/api/artifacts/ingest', {
+        data: form,
+        headers: { 'Content-Type': 'multipart/form-data' },
+        successModal: {
+          title: 'File uploaded',
+          message: `${selectedFile.name} was accepted for processing.`,
+          variant: 'success',
+          autoCloseMs: 2200,
+        },
+        timeoutMs: 120_000,
+      });
+      setSelectedFile(null);
+      await loadArtifacts();
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const openArtifact = async (artifact: Artifact, download: boolean) => {
+    const axios = getAxiosInstance();
+    const endpoint = download ? 'fetch' : 'view';
+    const response = await axios.get<Blob>(
+      `/api/artifacts/${endpoint}/${encodeURIComponent(artifact.id)}`,
+      { responseType: 'blob' },
+    );
+    const url = URL.createObjectURL(response.data);
+    if (download) {
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = artifact.name;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    }
+  };
 
   const deleteContent = async (id: string) => {
     if (!window.confirm('Delete this domain content entry?')) return;
@@ -81,42 +153,90 @@ export default function App() {
         <PortalSidebar />
         <header className="topbar">
           <div>
-            <div className="topbar-title">Domain Content</div>
-            <div className="topbar-subtitle">Manage domain-specific values</div>
+            <div className="topbar-title">Domain Context</div>
+            <div className="topbar-subtitle">Manage context related to your business</div>
           </div>
           <ProfileMenu />
         </header>
 
         <main className="main-content">
+          <div className="content-source-grid">
+            <section className="card">
+              <div className="card-header">
+                <span className="card-title">
+                  <Wand2 size={15} /> Generate content
+                </span>
+              </div>
+              <div className="card-body generation-form">
+                <TextField
+                  label="Business name"
+                  value={businessName}
+                  disabled={generating}
+                  onChange={setBusinessName}
+                />
+                <TextField
+                  label="Website link"
+                  value={websiteUrl}
+                  disabled={generating}
+                  onChange={setWebsiteUrl}
+                />
+                <button
+                  className="btn btn-primary generation-action"
+                  aria-busy={generating}
+                  disabled={generating || !businessName.trim() || !websiteUrl.trim()}
+                  onClick={() => void generateDomainContent()}
+                >
+                  {generating ? <LoaderCircle className="spin-icon" size={14} /> : <Wand2 size={14} />}
+                  {generating ? 'Generating...' : 'Generate'}
+                </button>
+              </div>
+            </section>
+
+            <section className="card">
+              <div className="card-header">
+                <span className="card-title">
+                  <Upload size={15} /> Upload file
+                </span>
+              </div>
+              <div className="card-body artifact-upload">
+                <label className="artifact-picker">
+                  <FileText size={22} />
+                  <span>
+                    <strong>{selectedFile?.name || 'Choose a file'}</strong>
+                    <small>
+                      {selectedFile
+                        ? `${formatBytes(selectedFile.size)} · ${selectedFile.type || 'Unknown type'}`
+                        : 'The file will be stored and indexed as an artifact.'}
+                    </small>
+                  </span>
+                  <input
+                    type="file"
+                    disabled={uploading}
+                    onChange={event => setSelectedFile(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <button
+                  className="btn btn-primary artifact-upload-action"
+                  disabled={!selectedFile || uploading}
+                  onClick={() => void uploadArtifact()}
+                >
+                  {uploading ? <LoaderCircle className="spin-icon" size={14} /> : <Upload size={14} />}
+                  {uploading ? 'Uploading...' : 'Upload'}
+                </button>
+              </div>
+            </section>
+          </div>
+
           <section className="card">
             <div className="card-header">
               <span className="card-title">
-                <Wand2 size={15} /> Generate content
+                <FileText size={15} /> Files
               </span>
-            </div>
-            <div className="card-body generation-form">
-              <TextField
-                label="Business name"
-                value={businessName}
-                disabled={generating}
-                onChange={setBusinessName}
-              />
-              <TextField
-                label="Website link"
-                value={websiteUrl}
-                disabled={generating}
-                onChange={setWebsiteUrl}
-              />
-              <button
-                className="btn btn-primary generation-action"
-                aria-busy={generating}
-                disabled={generating || !businessName.trim() || !websiteUrl.trim()}
-                onClick={() => void generateDomainContent()}
-              >
-                {generating ? <LoaderCircle className="spin-icon" size={14} /> : <Wand2 size={14} />}
-                {generating ? 'Generating...' : 'Generate'}
+              <button className="btn-icon" title="Refresh files" onClick={() => void loadArtifacts()}>
+                <RefreshCw size={14} />
               </button>
             </div>
+            <ArtifactTable artifacts={artifacts} onOpen={openArtifact} />
           </section>
 
           <section className="card">
@@ -149,6 +269,80 @@ export default function App() {
       </div>
     </BrowserRouter>
   );
+}
+
+function ArtifactTable({
+  artifacts,
+  onOpen,
+}: {
+  artifacts: Artifact[];
+  onOpen: (artifact: Artifact, download: boolean) => Promise<void>;
+}) {
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Size</th>
+            <th>Storage</th>
+            <th>Index</th>
+            <th>Uploaded</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {artifacts.map(artifact => (
+            <tr key={artifact.id}>
+              <td>
+                <span className="artifact-name"><FileText size={14} /> {artifact.name}</span>
+              </td>
+              <td className="mono">{artifact.mediaType}</td>
+              <td>{formatBytes(artifact.sizeBytes)}</td>
+              <td><StatusBadge value={artifact.storageStatus} /></td>
+              <td><StatusBadge value={artifact.indexStatus} /></td>
+              <td>{formatDate(artifact.createdAt)}</td>
+              <td>
+                <div className="artifact-actions">
+                  <button className="btn-icon" title="View file" onClick={() => void onOpen(artifact, false)}>
+                    <Eye size={14} />
+                  </button>
+                  <button className="btn-icon" title="Download file" onClick={() => void onOpen(artifact, true)}>
+                    <Download size={14} />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+          {!artifacts.length && (
+            <tr>
+              <td colSpan={7} className="empty-table">No uploaded files found.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function StatusBadge({ value }: { value: string }) {
+  const normalized = value.toLowerCase();
+  const style = ['stored', 'ready', 'indexed', 'complete'].includes(normalized)
+    ? 'badge-success'
+    : ['failed', 'error'].includes(normalized) ? 'badge-failed' : 'badge-pending';
+  return <span className={`badge ${style}`}>{value}</span>;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
 }
 
 function ContentTable({

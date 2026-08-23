@@ -106,7 +106,6 @@ function AgentsApp() {
     totalPages: 1,
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
   const [editingConfig, setEditingConfig] = useState<AgentConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
@@ -132,7 +131,6 @@ function AgentsApp() {
       setConfigs(configResponse);
       setLastLoadedAt(new Date());
       setSelectedId(current => current ?? getSnapshotId(snapshotResponse.content[0]) ?? null);
-      setSelectedConfigId(current => current ?? configResponse.content[0]?.id ?? null);
     } finally {
       setLoading(false);
     }
@@ -150,10 +148,8 @@ function AgentsApp() {
 
   const counts = useMemo(() => summarize(snapshots.content), [snapshots.content]);
   const selectedConfig = useMemo(() => {
-    return configs.content.find(config => config.id === selectedConfigId)
-      ?? configs.content[0]
-      ?? null;
-  }, [configs.content, selectedConfigId]);
+    return selected ? findConfigForSnapshot(selected, configs.content) : null;
+  }, [configs.content, selected]);
 
   useEffect(() => {
     setEditingConfig(selectedConfig ? cloneConfig(selectedConfig) : null);
@@ -202,7 +198,7 @@ function AgentsApp() {
         </div>
       </header>
 
-      <main className="main-content">
+      <main className="main-content agents-main">
         <section className="metrics-grid">
           <Metric
             label="Agents"
@@ -214,7 +210,7 @@ function AgentsApp() {
           <Metric label="With Task" value={String(counts.withTask)} icon={<Braces size={16} />} />
         </section>
 
-        <section className="agent-layout">
+        <section className="agent-layout agent-snapshot-layout">
           <div className="card agent-list-card">
             <div className="card-header">
               <span className="card-title">
@@ -224,12 +220,14 @@ function AgentsApp() {
                 Refresh
               </button>
             </div>
-            <AgentList
-              snapshots={snapshots.content}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              loading={loading}
-            />
+            <div className="agent-list-scroll">
+              <AgentList
+                snapshots={snapshots.content}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                loading={loading}
+              />
+            </div>
             <Pagination page={page} totalPages={snapshots.totalPages} onChange={setPage} />
           </div>
 
@@ -242,30 +240,10 @@ function AgentsApp() {
             </div>
             {selected ? <AgentDetails snapshot={selected} /> : <EmptyState loading={loading} />}
           </div>
-        </section>
-
-        <section className="agent-layout agent-config-layout">
-          <div className="card agent-list-card">
+          <div className="card agent-detail-card agent-config-card">
             <div className="card-header">
               <span className="card-title">
-                <Settings2 size={15} /> Agent configs
-              </span>
-              <button className="btn btn-ghost" onClick={() => void load()} disabled={loading}>
-                Refresh
-              </button>
-            </div>
-            <AgentConfigList
-              configs={configs.content}
-              selectedId={selectedConfigId}
-              onSelect={setSelectedConfigId}
-              loading={loading}
-            />
-          </div>
-
-          <div className="card agent-detail-card">
-            <div className="card-header">
-              <span className="card-title">
-                <Settings2 size={15} /> Configuration
+                <Settings2 size={15} /> Agent configuration
               </span>
               <button
                 className="btn btn-primary"
@@ -275,13 +253,13 @@ function AgentsApp() {
                 <Save size={14} /> {savingConfig ? 'Saving' : 'Save'}
               </button>
             </div>
-            {editingConfig ? (
+            {editingConfig && selectedConfig ? (
               <AgentConfigEditor
                 config={editingConfig}
                 onChange={setEditingConfig}
               />
             ) : (
-              <EmptyState loading={loading} />
+              <ConfigEmptyState loading={loading} snapshot={selected} />
             )}
           </div>
         </section>
@@ -375,52 +353,6 @@ function AgentListRow({
       </span>
       <StageBadge stage={snapshot.currentStage} />
     </button>
-  );
-}
-
-function AgentConfigList({
-  configs,
-  selectedId,
-  onSelect,
-  loading,
-}: {
-  configs: AgentConfig[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-  loading: boolean;
-}) {
-  if (!loading && configs.length === 0) {
-    return (
-      <div style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)' }}>
-        No agent configs found.
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {configs.map(config => (
-        <button
-          key={config.id}
-          className={`agent-row${selectedId === config.id ? ' agent-row--active' : ''}`}
-          onClick={() => onSelect(config.id)}
-        >
-          <span>
-            <div className="agent-row__name">{config.name ?? config.id}</div>
-            <div className="agent-row__meta">
-              <span>{config.id}</span>
-              <span>{config.model ?? 'default model'}</span>
-            </div>
-          </span>
-          <span className="stage-badge">{config.instances ?? 1}x</span>
-        </button>
-      ))}
-      {loading && (
-        <div style={{ padding: 16, color: 'var(--text-muted)' }}>
-          Loading configs...
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -552,15 +484,26 @@ function Pagination({
 
 function EmptyState({ loading }: { loading: boolean }) {
   return (
-    <div
-      style={{
-        minHeight: 360,
-        display: 'grid',
-        placeItems: 'center',
-        color: 'var(--text-muted)',
-      }}
-    >
+    <div className="panel-empty-state">
       {loading ? 'Loading snapshots...' : 'Select an agent to view its current task JSON.'}
+    </div>
+  );
+}
+
+function ConfigEmptyState({
+  loading,
+  snapshot,
+}: {
+  loading: boolean;
+  snapshot: AgentSnapshot | null;
+}) {
+  return (
+    <div className="panel-empty-state">
+      {loading
+        ? 'Loading configuration...'
+        : snapshot
+          ? `No configuration found for ${snapshot.agentType ?? snapshot.agentName ?? 'this agent'}.`
+          : 'Select an agent instance to view its configuration.'}
     </div>
   );
 }
@@ -578,16 +521,46 @@ function AgentStyles() {
         }
       }
 
+      .agents-main {
+        min-height: 0;
+        overflow: hidden;
+        padding: 18px 24px;
+        gap: 16px;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .agents-main .metrics-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .agents-main .metric-card {
+        min-width: 0;
+        padding: 14px 16px;
+      }
+
       .agent-layout {
         display: grid;
-        grid-template-columns: minmax(360px, 0.9fr) minmax(420px, 1.1fr);
+        grid-template-columns: minmax(0, 0.8fr) repeat(2, minmax(0, 1fr));
         gap: 18px;
-        align-items: start;
+        align-items: stretch;
+        min-height: 0;
       }
 
       .agent-list-card,
       .agent-detail-card {
         min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .agent-list-scroll {
+        min-height: 0;
+        overflow-y: auto;
+        flex: 1;
       }
 
       .agent-row {
@@ -659,8 +632,10 @@ function AgentStyles() {
       }
 
       .json-panel {
-        min-height: 420px;
-        max-height: calc(100vh - 310px);
+        min-height: 0;
+        max-height: none;
+        flex: 1;
+        margin: 0;
         overflow: auto;
         padding: 16px;
         background: #070705;
@@ -698,15 +673,13 @@ function AgentStyles() {
         overflow-wrap: anywhere;
       }
 
-      .agent-config-layout {
-        margin-top: 18px;
-      }
-
       .config-editor {
         display: grid;
         gap: 16px;
         padding: 16px;
         border-top: 1px solid var(--border);
+        min-height: 0;
+        overflow-y: auto;
       }
 
       .config-grid {
@@ -747,17 +720,21 @@ function AgentStyles() {
         font-weight: 700;
       }
 
-      @media (max-width: 1080px) {
-        .agent-layout {
-          grid-template-columns: 1fr;
-        }
-
-        .json-panel {
-          max-height: 540px;
-        }
+      .panel-empty-state {
+        min-height: 0;
+        flex: 1;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
+        color: var(--text-muted);
       }
 
       @media (max-width: 640px) {
+        .agents-main .metrics-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
         .detail-strip,
         .config-grid {
           grid-template-columns: 1fr;
@@ -776,6 +753,25 @@ function getStageClassName(stage: string) {
 
 function getSnapshotId(snapshot?: AgentSnapshot) {
   return snapshot?.id ?? snapshot?.agentId ?? '';
+}
+
+function findConfigForSnapshot(snapshot: AgentSnapshot, configs: AgentConfig[]) {
+  const type = normalizeAgentIdentity(snapshot.agentType);
+  const name = normalizeAgentIdentity(snapshot.agentName);
+  const instanceId = normalizeAgentIdentity(snapshot.agentId).replace(/(?:instance)?\d+$/, '');
+
+  return configs.find(config => normalizeAgentIdentity(config.id) === type)
+    ?? configs.find(config => normalizeAgentIdentity(config.name) === type)
+    ?? configs.find(config => normalizeAgentIdentity(config.id) === name)
+    ?? configs.find(config => {
+      const configId = normalizeAgentIdentity(config.id);
+      return Boolean(instanceId) && (instanceId === configId || instanceId.startsWith(configId));
+    })
+    ?? null;
+}
+
+function normalizeAgentIdentity(value?: string) {
+  return (value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/agent$/, '');
 }
 
 function summarize(snapshots: AgentSnapshot[]): SnapshotCounts {

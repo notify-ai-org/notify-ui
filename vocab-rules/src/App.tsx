@@ -45,8 +45,8 @@ export default function App() {
         <PortalSidebar />
         <header className="topbar">
           <div>
-            <div className="topbar-title">Vocab Rules</div>
-            <div className="topbar-subtitle">Manage vocabulary-based matching rules</div>
+            <div className="topbar-title">Rules</div>
+            <div className="topbar-subtitle">Manage vocabulary-based business rules</div>
           </div>
           <ProfileMenu />
         </header>
@@ -178,7 +178,7 @@ function RuleList() {
       <div className="card">
         <div className="card-header">
           <span className="card-title">
-            <BookOpen size={15} /> Vocabulary Rules
+            <BookOpen size={15} /> Rules
           </span>
           <button className="btn btn-primary" onClick={() => navigate('/new')}>
             <Plus size={13} /> New Rule
