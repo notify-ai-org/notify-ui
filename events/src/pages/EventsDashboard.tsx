@@ -4,15 +4,18 @@ import { PortalSidebar } from '@notify-ui/shared';
 import { Topbar } from '../components/layout/Layout';
 import { RegisteredEventsTable } from '../components/tables/RegisteredEvents';
 import { ScheduledEventsTable } from '../components/tables/ScheduledEvents';
-import { useAppDispatch } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRegisteredEvents, fetchScheduledEvents } from '../store/slices/eventsSlices';
 
 export function EventsDashboard() {
   const dispatch = useAppDispatch();
+  const registeredEventsPage = useAppSelector(state => state.registeredEvents.page);
   const { pathname } = useLocation();
 
   const handleRefresh = () => {
-    if (pathname === '/registered') dispatch(fetchRegisteredEvents());
+    if (pathname === '/registered') {
+      dispatch(fetchRegisteredEvents({ page: registeredEventsPage, forceRefresh: true }));
+    }
     else if (pathname === '/scheduled') dispatch(fetchScheduledEvents());
   };
 

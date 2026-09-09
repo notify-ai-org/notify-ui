@@ -16,13 +16,20 @@ interface RegisteredEventsState {
   totalPages: number;
 }
 
-export const fetchRegisteredEvents = createAsyncThunk<PaginatedResponse<RegisteredEvent>, number | void>(
+type RegisteredEventsFetchOptions = number | { page?: number; forceRefresh?: boolean } | void;
+
+export const fetchRegisteredEvents = createAsyncThunk<PaginatedResponse<RegisteredEvent>, RegisteredEventsFetchOptions>(
   'registeredEvents/fetch',
-  (page) => getPaginated<RegisteredEvent>('/api/admin/data/events', {
-    page: page ?? 0,
-    cacheKey: 'events:registered',
-    ttlMs: 60_000,
-  }),
+  (options) => {
+    const page = typeof options === 'number' ? options : options?.page ?? 0;
+    const forceRefresh = typeof options === 'object' && options?.forceRefresh === true;
+    return getPaginated<RegisteredEvent>('/api/admin/data/events', {
+      page,
+      cacheKey: 'events:registered',
+      ttlMs: 60_000,
+      forceRefresh,
+    });
+  },
 );
 
 export const updateRegisteredEvent = createAsyncThunk(

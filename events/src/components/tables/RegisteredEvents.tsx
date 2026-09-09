@@ -58,7 +58,7 @@ export function RegisteredEventsTable() {
           <button
             className="btn-icon"
             title="Refresh registered events"
-            onClick={() => dispatch(fetchRegisteredEvents(page))}
+            onClick={() => dispatch(fetchRegisteredEvents({ page, forceRefresh: true }))}
           >
             <RefreshCw size={14} />
           </button>
