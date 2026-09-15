@@ -1,4 +1,4 @@
-export type TemplateChannel = 'EMAIL' | 'SMS' | 'PUSH' | 'WEBHOOK' | 'IN_APP';
+export type TemplateChannel = 'EMAIL' | 'SMS' | 'WHATSAPP' | 'PUSH' | 'WEBHOOK' | 'IN_APP';
 export type TemplateStatus = 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
 
 export interface Template {

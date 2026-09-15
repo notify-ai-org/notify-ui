@@ -16,7 +16,7 @@ const useAppSelector = <T,>(fn: (s: RootState) => T) => useSelector<RootState, T
 
 const ACCENT = '#facc15';
 const CHANNEL_COLORS: Record<TemplateChannel, string> = {
-  EMAIL: '#facc15', SMS: '#22c55e', PUSH: '#f59e0b', WEBHOOK: '#ef4444', IN_APP: '#fde047',
+  EMAIL: '#facc15', SMS: '#22c55e', WHATSAPP: '#25d366', PUSH: '#f59e0b', WEBHOOK: '#ef4444', IN_APP: '#fde047',
 };
 
 const configuredBase = import.meta.env.VITE_PORTAL_BASE;
@@ -59,7 +59,7 @@ function TemplateList() {
       </div>
       <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 10, flexWrap: 'wrap' as const }}>
         <div className="search-input"><Search size={14} /><input placeholder="Search templates…" value={search} onChange={e => setSearch(e.target.value)} /></div>
-        {(['ALL', 'EMAIL', 'SMS', 'PUSH', 'WEBHOOK', 'IN_APP'] as const).map(c => (
+        {(['ALL', 'EMAIL', 'SMS', 'WHATSAPP', 'PUSH', 'WEBHOOK', 'IN_APP'] as const).map(c => (
           <button key={c} className={`btn ${channel === c ? 'btn-primary' : 'btn-ghost'}`} style={{ padding: '5px 10px', fontSize: 11 }} onClick={() => setChannel(c)}>{c}</button>
         ))}
       </div>
@@ -195,7 +195,7 @@ function TemplateEditor({ isNew }: { isNew?: boolean }) {
           <Field label="Template Name"><input className="form-input" value={form.name ?? ''} onChange={e => set('name', e.target.value)} placeholder="my-template" /></Field>
           <Field label="Channel">
             <select className="form-input" value={form.channel} onChange={e => set('channel', e.target.value as TemplateChannel)}>
-              {['EMAIL', 'SMS', 'PUSH', 'WEBHOOK', 'IN_APP'].map(c => <option key={c}>{c}</option>)}
+              {['EMAIL', 'SMS', 'WHATSAPP', 'PUSH', 'WEBHOOK', 'IN_APP'].map(c => <option key={c}>{c}</option>)}
             </select>
           </Field>
           <Field label="Event Key"><input className="form-input" value={form.eventKey ?? ''} onChange={e => set('eventKey', e.target.value)} placeholder="order.placed" /></Field>
