@@ -11,6 +11,7 @@ const portals: Array<{ name: PortalName; label: string }> = [
   { name: 'domain', label: 'Domain Context' },
   { name: 'vocab-rules', label: 'Rules' },
   { name: 'memory', label: 'Memory' },
+  { name: 'channels', label: 'Channels' },
   { name: 'settings', label: 'Settings' },
   { name: 'dead-letters', label: 'Dead Letters' },
 ];

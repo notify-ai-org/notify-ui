@@ -17,6 +17,7 @@ The `notify-ui` directory contains the modular frontend application stack for **
 - **`dev`**: The local development shell which imports and links all portals inside a single routing container.
 - **`shared`**: A shared library package housing common API configuration, interceptors, context modals, custom hooks, and Redux store state.
 - **Portals (Microfrontends)**:
+  - `channels`: Tenant channel activation, provider settings, credentials, and delivery metrics.
   - `home`: The landing/welcome dashboard.
   - `events`: Active event streams and capture metrics.
   - `templates`: Interactive template editor and variable injector.

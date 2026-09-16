@@ -38,6 +38,7 @@ PORTALS=(
   memory
   agents
   settings
+  channels
   dead-letters
 )
 

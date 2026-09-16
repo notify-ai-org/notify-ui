@@ -60,7 +60,7 @@ export type { AuthState, AuthResponse, RegistrationResponse } from './store/slic
 // HTTP service
 // ---------------------------------------------------------------------------
 export { httpService, registerHttpServiceStore } from './services/httpService';
-export type { GetOptions, MutationOptions } from './services/httpService';
+export type { GetOptions, MutationOptions, HttpRequestOptions } from './services/httpService';
 
 // ---------------------------------------------------------------------------
 // Error handling

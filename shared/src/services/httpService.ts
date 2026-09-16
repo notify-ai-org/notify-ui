@@ -27,6 +27,7 @@ import {
   invalidateByPrefix,
   registerRollback,
   clearRollback,
+  applyRollback,
 } from '../store/slices/cacheSlice';
 import { showModal } from '../store/slices/modalSlice';
 import {
@@ -65,7 +66,15 @@ function getCachedEntry(key: string): CacheEntry | null {
 // GET — with cache
 // ---------------------------------------------------------------------------
 
-export interface GetOptions {
+export interface HttpRequestOptions {
+  signal?: AbortSignal;
+  /** Never log request/response payloads or expose server error details. */
+  sensitive?: boolean;
+  /** Defaults to shared error handling; local callers render their own errors. */
+  errorHandling?: 'global' | 'local';
+}
+
+export interface GetOptions extends HttpRequestOptions {
   /** Cache key. Defaults to the URL + stringified params. */
   cacheKey?: string;
   /** TTL in ms. Default 5 min. Pass 0 to skip caching. */
@@ -82,14 +91,14 @@ export async function get<T = unknown>(
 ): Promise<T> {
   const {
     cacheKey = buildCacheKey(url, options.params),
-    ttlMs = DEFAULT_TTL,
+    ttlMs = options.sensitive ? 0 : DEFAULT_TTL,
     forceRefresh = false,
     params,
     headers,
   } = options;
 
   // Serve from cache
-  if (!forceRefresh && ttlMs > 0) {
+  if (!options.sensitive && !forceRefresh && ttlMs > 0) {
     const cached = getCachedEntry(cacheKey);
     if (cached) {
       logger.debug(`[httpService] Cache hit: ${cacheKey}`);
@@ -98,10 +107,10 @@ export async function get<T = unknown>(
   }
 
   const axios = getAxiosInstance();
-  const response = await axios.get<T>(url, { params, headers });
+  const response = await axios.get<T>(url, { params, headers, signal: options.signal, sensitive: options.sensitive, errorHandling: options.errorHandling });
 
   // Store in cache
-  if (_store && ttlMs > 0) {
+  if (_store && !options.sensitive && ttlMs > 0) {
     _store.dispatch(setEntry({ key: cacheKey, data: response.data, ttlMs }));
   }
 
@@ -112,7 +121,7 @@ export async function get<T = unknown>(
 // Mutation — with optimistic update + rollback
 // ---------------------------------------------------------------------------
 
-export interface MutationOptions {
+export interface MutationOptions extends HttpRequestOptions {
   /**
    * Cache key to invalidate after a successful mutation.
    * Also used as the prefix for the rollback snapshot key.
@@ -168,9 +177,11 @@ async function mutate<T = unknown>(
 
   try {
     const axios = getAxiosInstance();
+    const config = { params, headers, timeout: timeoutMs, signal: options.signal,
+      sensitive: options.sensitive, errorHandling: options.errorHandling };
     const response = await (method === 'delete'
-      ? axios.delete<T>(url, { params, headers, timeout: timeoutMs })
-      : axios[method]<T>(url, data, { params, headers, timeout: timeoutMs }));
+      ? axios.delete<T>(url, config)
+      : axios[method]<T>(url, data, config));
 
     // Success: clean up rollback record + invalidate stale cache entry
     if (_store) {
@@ -195,8 +206,9 @@ async function mutate<T = unknown>(
       headers: response.headers as Record<string, string>,
     };
   } catch (error) {
-    // The Axios interceptor already called handleApiError (rollback + modal).
-    // We just propagate so the caller can also handle it if needed.
+    if (_store && invalidateKey && (options.errorHandling === 'local' || options.signal?.aborted)) {
+      _store.dispatch(applyRollback(mutationId));
+    }
     clearPendingMutation(mutationId);
     throw error;
   }

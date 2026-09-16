@@ -24,6 +24,15 @@ import { handleApiError } from '../utils/errorHandler';
 import { redirectToForbidden } from '../navigation/portalNavigation';
 import { getSharedStore } from '../store';
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** Omit payload logging and server-provided error details for secrets. */
+    sensitive?: boolean;
+    /** Let the caller render errors inline instead of the global modal. */
+    errorHandling?: 'global' | 'local';
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Public error shape
 // ---------------------------------------------------------------------------
@@ -78,7 +87,7 @@ export function getAxiosInstance(): AxiosInstance {
       }
 
       // Optional request logging
-      if (enableRequestLogging) {
+      if (enableRequestLogging && !config.sensitive) {
         logger.debug(`→ ${config.method?.toUpperCase()} ${config.url}`, {
           params: config.params,
           data: config.data,
@@ -98,7 +107,7 @@ export function getAxiosInstance(): AxiosInstance {
   // ------------------------------------------------------------------
   _axiosInstance.interceptors.response.use(
     (response: AxiosResponse) => {
-      if (getApiConfig().enableRequestLogging) {
+      if (getApiConfig().enableRequestLogging && !response.config.sensitive) {
         logger.debug(`← ${response.status} ${response.config.url}`, {
           data: response.data,
         });
@@ -106,7 +115,13 @@ export function getAxiosInstance(): AxiosInstance {
       return response;
     },
     (error: unknown) => {
-      const apiError = normaliseError(error);
+      if (axios.isCancel(error)) return Promise.reject(error);
+      const config = axios.isAxiosError(error) ? error.config : undefined;
+      const apiError = config?.sensitive
+        ? new ApiError(axios.isAxiosError(error) ? error.response?.status ?? 0 : 0,
+          'SENSITIVE_REQUEST_FAILED', 'The request could not be completed. Please try again.', undefined)
+        : normaliseError(error);
+      if (config?.errorHandling === 'local') return Promise.reject(apiError);
       const isLoginPortal = typeof window !== 'undefined'
         && window.location.pathname.startsWith('/portals/login');
       if (apiError.status === 401 && !isLoginPortal) {
