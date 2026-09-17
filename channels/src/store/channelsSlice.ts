@@ -1,5 +1,5 @@
 import { createSlice, nanoid, type PayloadAction, type ThunkAction, type UnknownAction } from '@reduxjs/toolkit';
-import { request, channelPath, errorMessage, type Channel, type Metrics, type SecretMetadata } from '../api';
+import { request, channelPath, errorMessage, ApiError, type Channel, type Metrics, type SecretMetadata } from '../api';
 
 export type ChannelsState = {
   channels: Channel[]; selectedId: string; tenant: string;
@@ -126,6 +126,7 @@ export const mutateChannel = (command: Mutation, success: string): ChannelThunk<
     await dispatch(loadChannels());
     return true;
   } catch (error) {
+    if (command.kind === 'create' && error instanceof ApiError && error.status === 409) await dispatch(loadChannels());
     dispatch(a.mutationFailed(errorMessage(error))); return false;
   } finally { dispatch(a.mutationFinished()); }
 };

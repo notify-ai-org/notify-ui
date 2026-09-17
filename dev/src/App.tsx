@@ -42,7 +42,7 @@ const GROUPS: { label: string; portals: PortalDef[] }[] = [
       { key: 'domain', label: 'Domain', emoji: '🌐', basePath: '/portals/domain', accent: '#f97316' },
       { key: 'vocab-rules', label: 'Vocab Rules', emoji: '📚', basePath: '/portals/vocab-rules', accent: '#3b82f6' },
       { key: 'channels', label: 'Channels', emoji: '📨', basePath: '/portals/channels', accent: '#facc15' },
-      { key: 'settings', label: 'Settings', emoji: '⚙️', basePath: '/portals/settings', accent: '#64748b' },
+      // Settings is temporarily hidden from portal navigation.
       { key: 'dead-letters', label: 'Dead Letters', emoji: '💀', basePath: '/portals/dead-letters', accent: '#ef4444' },
     ],
   },

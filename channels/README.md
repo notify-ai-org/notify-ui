@@ -12,17 +12,23 @@ root, `bash notify-ui/build-all.sh channels` also copies them into the access
 module. Rebuild all portals to refresh the shared sidebar everywhere.
 
 The backend must have `notification.secrets.enabled=true`, its AWS Secrets
-Manager configuration, and database migrations 002 and 003 applied. Log in with
+Manager configuration, and database migrations 002 through 005 applied. Log in with
 `secret:metadata:read` to view channels and metrics, `secret:create` to provision
 channels and credentials, and `secret:update` to change settings, replace
 credentials, enable, or pause a channel. Rotation and revocation require
 `secret:rotate` and `secret:delete` respectively.
 
 The portal supports SMTP email, Twilio SMS, Meta WhatsApp, FCM push, webhooks,
-and in-app channels. Creating a channel stores its provider settings first;
+and in-app channels. Each tenant can have one channel of each type, including
+paused channels and those with revoked credentials. New-channel options exclude
+existing types; a duplicate request returns a conflict and refreshes the list.
+Creating a channel stores its provider settings first;
 credential provisioning activates it. Later credential replacement or rotation
-preserves a manually paused channel. A revoked credential cannot be recreated
-under the same channel; create a new channel after revocation.
+preserves a manually paused channel. Once revocation or failed-provisioning cleanup
+reaches `DELETION_PENDING`, add credentials again on the same channel. The portal
+uses POST to create a fresh secret and enable delivery; the retired secret's AWS
+recovery window does not block this. `REVOKED` and `ROTATING` remain unavailable
+while a lifecycle operation is pending.
 
 Metrics count persisted delivery attempts for the last 1, 7, or 30 days.
 “Accepted” means the connector's send request succeeded, not that the recipient
@@ -42,6 +48,9 @@ payload logging and sanitizes server errors. Credentials pass through a closure
 thunk, never Redux action payloads, state, or DevTools history. Form values are
 cleared after submission; stored credential values are never requested or displayed.
 Errors use the shared transport's `local` handling option and appear inline.
+Credential mutations use a 60-second per-request timeout through the shared HTTP
+service so sequential STS and Secrets Manager operations can complete. Other
+requests retain the shared default timeout.
 
 API additions:
 

@@ -14,6 +14,9 @@ export const providers: Provider[] = [
   { type:'WEBHOOK',provider:'WEBHOOK',label:'Webhook',vendor:'HTTP',description:'Signed notifications delivered to your endpoint.',fields:[{ ...field('endpoint','Endpoint URL',true),hint:'HTTPS URL without credentials, query parameters, or a fragment.' },field('callbackAllowedIps','Callback IP allowlist')],secrets:[field('signingSecret','Signing secret',true),field('authorization','Authorization header')] },
   { type:'IN_APP',provider:'WEBHOOK',label:'In-app',vendor:'Webhook',description:'Recipient-aware events for your application.',fields:[field('endpoint','Endpoint URL',true),field('callbackAllowedIps','Callback IP allowlist')],secrets:[field('signingSecret','Signing secret',true),field('authorization','Authorization header')] },
 ];
+export const availableProviders = (channels: ReadonlyArray<{ type: string }>): Provider[] =>
+  providers.filter(provider => !channels.some(channel => channel.type.toUpperCase() === provider.type));
+
 export const runtime: Field[] = [
   { key:'instances',label:'Connector instances',type:'number',initial:'1',min:1,max:100 },
   { key:'delay',label:'Retry delay (ms)',type:'number',initial:'0',min:0 },

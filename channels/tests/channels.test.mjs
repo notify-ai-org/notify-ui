@@ -15,6 +15,16 @@ await build({
   outfile: fileURLToPath(compiled), bundle: true, platform: 'node', format: 'esm', packages: 'external',
 });
 const { default: reducer, channelsActions: a, loadChannels, loadDetails, mutateChannel } = await import(compiled.href);
+const compiledApi = new URL('../node_modules/.cache/channels-tests/api.mjs', import.meta.url);
+await build({
+  entryPoints: [fileURLToPath(new URL('../src/api.ts', import.meta.url))],
+  outfile: fileURLToPath(compiledApi), bundle: true, platform: 'node', format: 'esm', packages: 'external',
+});
+const { credentialMode } = await import(compiledApi.href);
+const compiledSchema = new URL('../node_modules/.cache/channels-tests/schema.mjs', import.meta.url);
+await build({ entryPoints: [fileURLToPath(new URL('../src/schema.ts', import.meta.url))],
+  outfile: fileURLToPath(compiledSchema), bundle: true, platform: 'node', format: 'esm' });
+const { availableProviders, providers } = await import(compiledSchema.href);
 const channel = id => ({ id, type: 'EMAIL', provider: 'SMTP', enabled: false, settings: {}, secretRef: null });
 const response = (config, data) => ({ config, data, status: 200, statusText: 'OK', headers: {} });
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
@@ -32,6 +42,25 @@ function setup(adapter) {
   getAxiosInstance().defaults.adapter = adapter;
   return { store: observed, shared: store, actions, logs };
 }
+
+test('new channel options exclude existing types regardless of activation or credentials', () => {
+  const existing = [channel('mail'), { type: 'sms', enabled: false, status: 'DELETION_PENDING' },
+    { type: 'WEBHOOK', enabled: true }];
+  assert.deepEqual(availableProviders(existing).map(p => p.type), ['WHATSAPP', 'PUSH', 'IN_APP']);
+  assert.equal(availableProviders(providers).length, 0);
+  assert.equal(availableProviders([]).length, 6);
+});
+
+test('duplicate create conflicts refresh channels and explain how to reuse the existing channel', async () => {
+  const { store } = setup(async config => {
+    if (config.method === 'post') throw { isAxiosError: true, config, response: { status: 409, data: { error: 'CHANNEL_ALREADY_CONFIGURED' } } };
+    return response(config, [channel('existing-mail')]);
+  });
+  assert.equal(await store.dispatch(mutateChannel({ kind: 'create', body: { type: 'EMAIL', provider: 'SMTP' } }, 'Created')), false);
+  assert.equal(store.getState().channels.selectedId, 'existing-mail');
+  assert.match(store.getState().channels.error, /already has a channel of this type/);
+  assert.equal(availableProviders(store.getState().channels.channels).some(p => p.type === 'EMAIL'), false);
+});
 
 test('latest channel list wins even when an older request finishes last', async () => {
   const first = deferred(), second = deferred(); let calls = 0;
@@ -65,6 +94,7 @@ test('credential requests use shared auth without exposing secrets to actions, s
   assert.equal(requests[0].headers.get('Authorization'), 'Bearer test-token');
   assert.ok(requests[0].data.includes(secret));
   assert.equal(requests[0].sensitive, true);
+  assert.equal(requests[0].timeout, 60_000);
   for (const value of [actions, store.getState(), shared.getState(), logs]) assert.ok(!JSON.stringify(value).includes(secret));
   assert.equal(store.getState().channels.notice, 'Saved');
   assert.equal(store.getState().channels.busy, false);
@@ -80,6 +110,26 @@ test('server errors that echo credentials are sanitized and rendered inline', as
   assert.match(store.getState().channels.error, /required fields/);
   assert.equal(store.getState().channels.busy, false);
   for (const value of [actions, store.getState(), shared.getState(), logs]) assert.ok(!JSON.stringify(value).includes(secret));
+});
+
+test('all credential mutations allow AWS work to finish while ordinary requests retain the default timeout', async () => {
+  const requests = [];
+  const { store } = setup(async config => {
+    requests.push(config);
+    return response(config, config.method === 'get' ? [channel('mail')] : {});
+  });
+  for (const command of [
+    { kind: 'credentials', id: 'mail', replace: true, credentials: { password: 'test-only' } },
+    { kind: 'rotate', id: 'mail' }, { kind: 'revoke', id: 'mail' },
+  ]) {
+    requests.length = 0;
+    await store.dispatch(mutateChannel(command, 'Saved'));
+    assert.equal(requests[0].timeout, 60_000);
+    assert.equal(requests[1].timeout, 10_000);
+  }
+  requests.length = 0;
+  await store.dispatch(mutateChannel({ kind: 'activation', id: 'mail', enabled: false }, 'Paused'));
+  assert.equal(requests[0].timeout, 10_000);
 });
 
 test('sensitive GET skips caching even when a TTL is explicitly requested', async () => {
@@ -139,6 +189,26 @@ test('channel mutations route through shared HTTP and refresh the list', async (
     assert.equal(await store.dispatch(mutateChannel(command, 'Saved')), true);
     assert.deepEqual(requests, [[method, path], ['get', '/api/v1/channels']]);
   }
+});
+
+test('retired credentials can be recreated while active credentials are updated', async () => {
+  const requests = [];
+  const { store } = setup(async config => {
+    requests.push([config.method, config.url]);
+    return response(config, config.method === 'get' ? [channel('mail')] : {});
+  });
+  for (const [status, mode, method] of [
+    [null, 'create', 'post'], ['DELETION_PENDING', 'create', 'post'], ['ACTIVE', 'update', 'put'],
+  ]) {
+    const metadata = { status, configured: status === 'ACTIVE', secretRef: status ? 'sec_old' : null };
+    assert.equal(credentialMode(metadata), mode);
+    requests.length = 0;
+    assert.equal(await store.dispatch(mutateChannel({ kind: 'credentials', id: 'mail',
+      replace: credentialMode(metadata) === 'update', credentials: { password: 'replacement-value' } }, 'Saved')), true);
+    assert.deepEqual(requests[0], [method, '/api/v1/channels/mail/credentials']);
+  }
+  assert.equal(credentialMode(null), null);
+  for (const status of ['REVOKED', 'ROTATING', 'UNKNOWN']) assert.equal(credentialMode({ status }), null);
 });
 
 
