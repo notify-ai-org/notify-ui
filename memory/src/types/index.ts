@@ -1,6 +1,10 @@
 export interface Fact {
   id: string;
   tenantId: string;
+  event?: string | null;
+  entityRef?: { type: string; id: string } | null;
+  subject?: string | null;
+  factType: 'event' | 'notification' | 'subject' | 'entity';
   key: string;
   value: unknown;
   eventKey: string;
