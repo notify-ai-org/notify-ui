@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { Activity, Bot, Braces, Clock3, RefreshCw, Save, Settings2 } from 'lucide-react';
+import { Activity, Bot, Braces, Clock3, RefreshCw, Save, Settings2, Square } from 'lucide-react';
 import {
   ModalProvider,
   PortalSidebar,
@@ -110,6 +110,7 @@ function AgentsApp() {
   const [loading, setLoading] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
+  const [stopping, setStopping] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -155,14 +156,39 @@ function AgentsApp() {
     setEditingConfig(selectedConfig ? cloneConfig(selectedConfig) : null);
   }, [selectedConfig]);
 
+  const stopTask = async (snapshot: AgentSnapshot) => {
+    if (!snapshot.agentId || !snapshot.currentTaskId) return;
+    if (!confirm(`Stop task ${snapshot.currentTaskId} on ${snapshot.agentName ?? snapshot.agentId}? The event it belongs to is marked failed.`)) return;
+    setStopping(snapshot.agentId);
+    try {
+      const response = await httpService.post<{ status: string }>(
+        `/api/admin/agents/${encodeURIComponent(snapshot.agentId)}/stop`,
+        {
+          data: { taskId: snapshot.currentTaskId },
+          successModal: {
+            title: 'Stop requested',
+            message: 'The agent run is being cancelled. Its stage updates when the agent releases the task.',
+            variant: 'success',
+            autoCloseMs: 2500,
+          },
+        },
+      );
+      // Another instance may be running the task; give it a moment to record the new stage.
+      if (response.data.status === 'REQUESTED') await new Promise(resolve => setTimeout(resolve, 1500));
+      await load();
+    } finally {
+      setStopping(null);
+    }
+  };
+
   const saveConfig = async () => {
     if (!editingConfig?.id) return;
 
     setSavingConfig(true);
     try {
-      const saved = await httpService.put<AgentConfig>(
+      const { data: saved } = await httpService.put<AgentConfig>(
         `/api/admin/data/agent-configs/${encodeURIComponent(editingConfig.id)}`,
-        normalizeConfig(editingConfig),
+        { data: normalizeConfig(editingConfig) },
       );
       setConfigs(current => ({
         ...current,
@@ -236,7 +262,20 @@ function AgentsApp() {
               <span className="card-title">
                 <Braces size={15} /> Current task JSON
               </span>
-              {selected && <StageBadge stage={selected.currentStage} />}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {selected && <StageBadge stage={selected.currentStage} />}
+                {selected?.currentStage === 'RUNNING' && selected.currentTaskId && (
+                  <button
+                    className="btn btn-ghost"
+                    title="Cancel this agent's current task"
+                    onClick={() => void stopTask(selected)}
+                    disabled={stopping === selected.agentId}
+                    style={{ color: '#ef4444' }}
+                  >
+                    <Square size={13} /> {stopping === selected.agentId ? 'Stopping' : 'Stop'}
+                  </button>
+                )}
+              </div>
             </div>
             {selected ? <AgentDetails snapshot={selected} /> : <EmptyState loading={loading} />}
           </div>

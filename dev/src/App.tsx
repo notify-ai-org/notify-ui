@@ -8,6 +8,7 @@ const TemplatesApp = lazy(() => import('../../templates/src/App'));
 const DomainApp = lazy(() => import('../../domain/src/App'));
 const VocabApp = lazy(() => import('../../vocab-rules/src/App'));
 const ChannelsApp = lazy(() => import('../../channels/src/App'));
+const PreferencesApp = lazy(() => import('../../preferences/src/App'));
 const SettingsApp = lazy(() => import('../../settings/src/App'));
 const DLQApp = lazy(() => import('../../dead-letters/src/App'));
 
@@ -42,6 +43,7 @@ const GROUPS: { label: string; portals: PortalDef[] }[] = [
       { key: 'domain', label: 'Domain', emoji: '🌐', basePath: '/portals/domain', accent: '#f97316' },
       { key: 'vocab-rules', label: 'Vocab Rules', emoji: '📚', basePath: '/portals/vocab-rules', accent: '#3b82f6' },
       { key: 'channels', label: 'Channels', emoji: '📨', basePath: '/portals/channels', accent: '#facc15' },
+      { key: 'preferences', label: 'Preferences', emoji: '🔕', basePath: '/portals/preferences', accent: '#a3e635' },
       // Settings is temporarily hidden from portal navigation.
       { key: 'dead-letters', label: 'Dead Letters', emoji: '💀', basePath: '/portals/dead-letters', accent: '#ef4444' },
     ],
@@ -168,6 +170,7 @@ function Shell() {
             <Route path="/portals/domain/*" element={<DomainApp />} />
             <Route path="/portals/vocab-rules/*" element={<VocabApp />} />
             <Route path="/portals/channels/*" element={<ChannelsApp />} />
+            <Route path="/portals/preferences/*" element={<PreferencesApp />} />
             <Route path="/portals/settings/*" element={<SettingsApp />} />
             <Route path="/portals/dead-letters/*" element={<DLQApp />} />
 

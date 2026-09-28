@@ -92,7 +92,7 @@ function TemplateList() {
                       {t.eventKey}
                     </button>
                   </td>
-                  <td><span className="badge" style={{ background: `${CHANNEL_COLORS[t.channel]}22`, color: CHANNEL_COLORS[t.channel] }}>{t.channel}</span></td>
+                  <td><span className="badge" style={{ background: `${CHANNEL_COLORS[t.channel]}22`, color: CHANNEL_COLORS[t.channel] }}>{t.channel}</span>{t.language && <span className="badge" title="Recipient language" style={{ marginLeft: 4 }}>{t.language}</span>}</td>
                   <td>{t.subject || '—'}</td>
                   <td style={{ maxWidth: 250, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#94a3b8' }}>{t.body || t.name}</td>
                   <td style={{ color: '#475569' }}>{format(parseISO(t.createdAt), 'MMM d, HH:mm')}</td>

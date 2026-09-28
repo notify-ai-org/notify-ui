@@ -10,6 +10,7 @@ export type PortalName =
   | 'vocab-rules'
   | 'memory'
   | 'channels'
+  | 'preferences'
   | 'settings'
   | 'dead-letters';
 

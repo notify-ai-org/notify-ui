@@ -11,7 +11,7 @@ import { format, parseISO } from 'date-fns';
 import { useDispatch, useSelector } from 'react-redux';
 import { PaginationControls, PortalSidebar } from '@notify-ui/shared';
 import type { AppDispatch, RootState } from './store';
-import { discardEntry, fetchDLQ, retryEntry, setDLQPage } from './store/slices/dlqSlice';
+import { discardEntry, fetchDLQ, refreshDLQ, retryEntry, setDLQPage } from './store/slices/dlqSlice';
 import type { DLQStatus, DeadLetterEntry } from './types';
 
 const useD = () => useDispatch<AppDispatch>();
@@ -29,6 +29,7 @@ const BASE =
 
 const STATUS_COLOR: Record<DLQStatus, string> = {
   PENDING: '#f59e0b',
+  REPLAYING: '#38bdf8',
   REPLAYED: '#22c55e',
   DISCARDED: '#ef4444',
 };
@@ -69,6 +70,16 @@ function DLQTable() {
   useEffect(() => {
     dispatch(fetchDLQ({ page, status: statusFilter === 'ALL' ? '' : statusFilter }));
   }, [dispatch, page, statusFilter]);
+
+  // Replays finish on the server's DLQ thread; poll until none on this page are in flight.
+  const replaying = items.some(entry => entry.replayStatus === 'REPLAYING');
+  useEffect(() => {
+    if (!replaying) return;
+    const timer = setInterval(() => {
+      dispatch(refreshDLQ({ page, status: statusFilter === 'ALL' ? '' : statusFilter }));
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [dispatch, replaying, page, statusFilter]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -164,7 +175,7 @@ function StatusFilters({
 }) {
   return (
     <div style={{ display: 'flex', gap: 8 }}>
-      {(['ALL', 'PENDING', 'REPLAYED', 'DISCARDED'] as const).map(status => (
+      {(['ALL', 'PENDING', 'REPLAYING', 'REPLAYED', 'DISCARDED'] as const).map(status => (
         <button
           key={status}
           className={`btn ${statusFilter === status ? 'btn-primary' : 'btn-ghost'}`}
@@ -273,6 +284,11 @@ function DeadLetterRow({
         >
           [{entry.failureReasonCode}] {entry.failureMessage ?? entry.failureCategory}
         </span>
+        {entry.replayStatus === 'PENDING' && entry.replayError && (
+          <span title={entry.replayError} style={{ color: '#f59e0b', fontSize: 11, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            Last replay failed: {entry.replayError}
+          </span>
+        )}
       </td>
       <td style={{ textAlign: 'center' }}><span style={{ color: '#94a3b8' }}>{entry.attemptCount}</span></td>
       <td>

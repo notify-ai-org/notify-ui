@@ -39,6 +39,7 @@ PORTALS=(
   agents
   settings
   channels
+  preferences
   dead-letters
 )
 

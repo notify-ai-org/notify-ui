@@ -13,6 +13,8 @@ export interface Template {
   variables: string[];
   version: number;
   eventKey: string;
+  /** BCP 47 tag of a recipient-language variant; null for the default copy. */
+  language?: string | null;
   createdAt: string;
   updatedAt: string;
 }

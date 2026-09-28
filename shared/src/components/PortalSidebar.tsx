@@ -12,6 +12,7 @@ const portals: Array<{ name: PortalName; label: string }> = [
   { name: 'vocab-rules', label: 'Rules' },
   { name: 'memory', label: 'Memory' },
   { name: 'channels', label: 'Channels' },
+  { name: 'preferences', label: 'Preferences' },
   // Settings is temporarily hidden from portal navigation.
   { name: 'dead-letters', label: 'Dead Letters' },
 ];

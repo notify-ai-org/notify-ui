@@ -12,6 +12,7 @@ type BackendTemplate = {
   template?: string | null;
   eventType?: string | null;
   eventName?: string | null;
+  language?: string | null;
   createdAt?: string;
   updatedAt?: string;
   validated?: boolean;
@@ -49,6 +50,7 @@ function toTemplate(dto: BackendTemplate, resolved?: Pick<BackendTemplateDetail,
     variables: [],
     version: 1,
     eventKey,
+    language: dto.language ?? null,
     createdAt: dto.createdAt ?? new Date(0).toISOString(),
     updatedAt: dto.updatedAt ?? dto.createdAt ?? new Date(0).toISOString(),
   };
@@ -62,6 +64,8 @@ function toBackendTemplate(template: Partial<Template>): BackendTemplate {
     template: template.body ?? '',
     eventName: template.eventKey,
     eventType: template.eventKey,
+    // Saving replaces the stored row; keep the variant's language or it becomes the default copy.
+    language: template.language ?? null,
   };
 }
 

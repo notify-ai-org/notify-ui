@@ -27,13 +27,23 @@ export const fetchDLQ = createAsyncThunk(
   }),
 );
 
+/** Re-reads the current page without the loading skeleton, used while replays are in flight. */
+export const refreshDLQ = createAsyncThunk(
+  'dlq/refresh',
+  ({ page, status }: { page: number; status: string }) => getPaginated<DeadLetterEntry>('/api/admin/dead-letter', {
+    page,
+    params: { status: status || undefined },
+    ttlMs: 0,
+  }),
+);
+
 export const retryEntry = createAsyncThunk(
   'dlq/retry',
   (id: number) => httpService.post<Record<string, unknown>>(`/api/admin/dead-letter/${id}/replay`, {
     invalidateKey: 'dlq:list',
     successModal: {
-      title: 'Replay triggered',
-      message: 'Entry re-queued for processing.',
+      title: 'Replay queued',
+      message: 'The entry is replaying in the background.',
       variant: 'success',
       autoCloseMs: 2000,
     },
@@ -75,7 +85,12 @@ const slice = createSlice({
     });
     builder.addCase(retryEntry.fulfilled, (state, action) => {
       state.retrying = state.retrying.filter(id => id !== action.meta.arg);
-      updateReplayStatus(state, action.meta.arg, 'REPLAYED');
+      // The DLQ replay thread dispatches the job; refreshes report REPLAYED or a replay error.
+      updateReplayStatus(state, action.meta.arg, 'REPLAYING');
+    });
+    builder.addCase(refreshDLQ.fulfilled, (state, action) => {
+      state.items = action.payload.content;
+      state.totalPages = action.payload.totalPages;
     });
     builder.addCase(retryEntry.rejected, (state, action) => {
       state.retrying = state.retrying.filter(id => id !== action.meta.arg);
@@ -90,6 +105,7 @@ function updateReplayStatus(state: State, id: number, replayStatus: DeadLetterEn
   const entry = state.items.find(item => item.id === id);
   if (entry) {
     entry.replayStatus = replayStatus;
+    if (replayStatus === 'REPLAYING') entry.replayError = null;
   }
 }
 

@@ -1,4 +1,4 @@
-export type DLQStatus = 'PENDING' | 'REPLAYED' | 'DISCARDED';
+export type DLQStatus = 'PENDING' | 'REPLAYING' | 'REPLAYED' | 'DISCARDED';
 
 export interface DeadLetterEntry {
   id: number;
@@ -20,6 +20,9 @@ export interface DeadLetterEntry {
   dispatcherInstanceId: string | null;
   replayStatus: DLQStatus;
   replayedAt: string | null;
+  replayRequestedAt?: string | null;
+  /** Why the last replay could not dispatch; the entry is PENDING again. */
+  replayError?: string | null;
   replayedBy: string | null;
   discardedAt: string | null;
   discardedBy: string | null;
