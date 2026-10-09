@@ -29,7 +29,6 @@ STATIC_OUT="$ROOT_DIR/access/src/main/resources/static/portals"
 PORTALS=(
   login
   events
-  schedules
   logs
   clients
   templates

@@ -4,6 +4,7 @@ import { PortalSidebar } from '@notify-ui/shared';
 import { Topbar } from '../components/layout/Layout';
 import { RegisteredEventsTable } from '../components/tables/RegisteredEvents';
 import { ScheduledEventsTable } from '../components/tables/ScheduledEvents';
+import { EventSchedulesTable } from '../components/tables/EventSchedules';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRegisteredEvents, fetchScheduledEvents } from '../store/slices/eventsSlices';
 
@@ -26,6 +27,7 @@ export function EventsDashboard() {
       <main className="main-content">
         <RegisteredEventsTable />
         <ScheduledEventsTable />
+        <EventSchedulesTable />
       </main>
     </div>
   );

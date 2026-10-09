@@ -3,7 +3,6 @@ import { portalHref, type PortalName } from '../navigation/portalNavigation';
 
 const portals: Array<{ name: PortalName; label: string }> = [
   { name: 'events', label: 'Events' },
-  { name: 'schedules', label: 'Schedules' },
   { name: 'logs', label: 'Logs' },
   { name: 'agents', label: 'Agents' },
   { name: 'clients', label: 'Clients' },
