@@ -66,19 +66,13 @@ const MODEL_OPTIONS = [
   {
     provider: 'OpenAI',
     models: [
+      { value: 'gpt-5.4-mini', label: 'GPT-5.4 mini' },
+      { value: 'gpt-5.4', label: 'GPT-5.4' },
+      { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini' },
       { value: 'gpt-4o-mini', label: 'GPT-4o mini' },
       { value: 'gpt-4o', label: 'GPT-4o' },
       { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
       { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
-    ],
-  },
-  {
-    provider: 'Groq',
-    models: [
-      { value: 'groq/llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile' },
-      { value: 'groq/llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant' },
-      { value: 'groq/openai/gpt-oss-120b', label: 'GPT-OSS 120B' },
-      { value: 'groq/openai/gpt-oss-20b', label: 'GPT-OSS 20B' },
     ],
   },
   {
